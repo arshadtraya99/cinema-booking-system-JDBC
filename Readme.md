@@ -1,12 +1,12 @@
 # 🎬 Smart Cinema Booking System
 
-A desktop application built with **Java, Java Swing, MySQL, and JDBC** that manages movie screenings, theater seating, and ticket reservations — designed to automate the box office workflow, prevent double-booking, and give cinema management a clear view of theater occupancy.
+A desktop application built with **Java, Java Swing, MySQL, and JDBC** that manages movie screenings, theater seating, and ticket reservations — designed to automate the box office workflow, prevent double-booking, and give cinema management a clear view of theater occupancy across multiple locations.
 
 ---
 
 ## 📌 Project Overview
 
-The Smart Cinema Booking System provides an interface for staff to book tickets for walk-in customers and manage show timings. It replaces manual seat tracking with a transaction-safe, database-driven booking engine and a visual seat map.
+The Smart Cinema Booking System provides an interface for staff to book tickets for walk-in customers and manage show timings. It replaces manual seat tracking with a transaction-safe, database-driven booking engine and a visual seat map, and supports multiple theatres and locations.
 
 **Objective:** Automate the ticketing process, prevent double-booking of seats, and provide a clear overview of theater occupancy for cinema management.
 
@@ -16,16 +16,18 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 
 | Feature | Description |
 |---|---|
+| **Multi-Theatre Support** | Manage multiple theatre locations, each with their own screens |
 | **Movie Scheduling** | Set up showtimes and assign movies to specific screens |
 | **Seat Management** | Grid-based graphical view of seat availability (Booked vs. Available) |
 | **Dynamic Pricing** | Configurable rates across Gold, Silver, and Platinum seating tiers |
 | **Booking Receipts** | Auto-generated summary of movie, seat numbers, and total cost |
+| **Booking History** | Full record of past transactions per show/clerk |
 
 ---
 
 ## 👥 User Roles
 
-- **Admin** — Manages movie listings and screen schedules
+- **Admin** — Manages movie listings, theatres, screens, and schedules
 - **Ticket Clerk** — Handles seat selection and payment for customers
 
 ---
@@ -40,6 +42,22 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 
 ## 🗄️ Database Schema
 
+**Theatres**
+| Column | Type |
+|---|---|
+| TheatreID | PK |
+| TheatreName | VARCHAR |
+| Location | VARCHAR |
+| City | VARCHAR |
+
+**Screens**
+| Column | Type |
+|---|---|
+| ScreenID | PK |
+| TheatreID | FK → Theatres |
+| ScreenName | VARCHAR |
+| TotalSeats | INT |
+
 **Movies**
 | Column | Type |
 |---|---|
@@ -53,28 +71,56 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 |---|---|
 | ShowID | PK |
 | MovieID | FK → Movies |
-| ScreenID | INT |
+| ScreenID | FK → Screens |
 | Time | TIME |
 | Date | DATE |
+
+**SeatCategory**
+| Column | Type |
+|---|---|
+| CategoryID | PK |
+| CategoryName | VARCHAR (Gold / Silver / Platinum) |
+| Price | DECIMAL |
 
 **Seats**
 | Column | Type |
 |---|---|
 | SeatID | PK |
 | ShowID | FK → Shows |
+| CategoryID | FK → SeatCategory |
 | Row | VARCHAR |
 | Number | INT |
 | IsBooked | BOOLEAN |
+
+**Users**
+| Column | Type |
+|---|---|
+| UserID | PK |
+| Name | VARCHAR |
+| Username | VARCHAR |
+| Password | VARCHAR |
+| Role | ENUM (Admin / Clerk) |
+
+**Bookings**
+| Column | Type |
+|---|---|
+| BookingID | PK |
+| ShowID | FK → Shows |
+| SeatID | FK → Seats |
+| ClerkID | FK → Users |
+| CustomerName | VARCHAR |
+| TotalAmount | DECIMAL |
+| BookingTime | DATETIME |
 
 ---
 
 ## 🔄 Project Workflow
 
-1. Admin adds a new movie and schedules a show.
+1. Admin adds a theatre, screen, movie, and schedules a show.
 2. Customer selects a movie and time at the counter.
 3. Clerk selects available seats from the UI grid.
-4. A JDBC transaction marks seats as `Booked` and records the sale.
-5. Ticket is printed/displayed.
+4. A JDBC transaction marks seats as `Booked` and records the sale in `Bookings`.
+5. Ticket/receipt is printed or displayed.
 
 ---
 
@@ -93,13 +139,13 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 SmartCinemaBookingSystem/
 ├── src/
 │   ├── main/
-│   │   ├── model/          # Movie, Show, Seat, Booking classes
-│   │   ├── dao/            # JDBC data access objects
-│   │   ├── ui/             # Swing forms (Admin, Clerk, Seat Grid)
-│   │   ├── service/        # Booking engine / business logic
-│   │   └── util/           # DB connection, helpers
+│   │   ├── model/          # Theatre, Screen, Movie, Show, Seat, Booking, User
+│   │   ├── dao/             # JDBC data access objects
+│   │   ├── ui/               # Swing forms (Admin, Clerk, Seat Grid)
+│   │   ├── service/       # Booking engine / business logic
+│   │   └── util/            # DB connection, helpers
 ├── database/
-│   └── schema.sql          # Movies, Shows, Seats tables
+│   └── schema.sql          # Theatres, Screens, Movies, Shows, SeatCategory, Seats, Users, Bookings
 ├── resources/
 ├── README.md
 └── .gitignore
@@ -120,6 +166,7 @@ SmartCinemaBookingSystem/
 
 - Implementing database transactions to ensure data integrity during booking
 - Advanced UI layout management for seat grids using Java Swing
+- Designing a normalized relational schema across multiple related entities
 
 ---
 
@@ -127,9 +174,10 @@ SmartCinemaBookingSystem/
 
 - Loyalty point system for frequent moviegoers
 - Food and beverage add-on booking during ticket purchase
+- Online booking portal alongside the counter-based system
 
 ---
 
 ## 📝 Conclusion
 
-The Smart Cinema Booking System modernizes the box office experience, ensuring accurate seating and efficient management of movie schedules through a robust Java–JDBC backend.
+The Smart Cinema Booking System modernizes the box office experience, ensuring accurate seating and efficient management of movie schedules across multiple theatres through a robust Java–JDBC backend.
