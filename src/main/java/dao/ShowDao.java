@@ -1,13 +1,21 @@
+package dao;
+
+import model.Show;
+
+import java.util.List;
+
 public interface ShowDao {
-    boolean addTheatre(Theatre theatre);
+    boolean addShow(Show show);
 
-    Theatre getTheatreById(int theatreId);
+    Show getShowById(int showId);
 
-    List<Theatre> getAllTheatres();
+    List<Show> getAllShows();
 
-    List<Theatre> getTheatresByCity(String city);
+    List<Show> getShowsByMovieId(int movieId);
 
-    boolean updateTheatre(Theatre theatre);
+    List<Show> getShowsByScreenId(int screenId);
 
-    boolean deleteTheatre(int theatreId);
+    boolean updateShow(Show show);
+
+    boolean deleteShow(int showId);
 }

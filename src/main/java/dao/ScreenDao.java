@@ -1,13 +1,19 @@
+package dao;
+
+import model.Screen;
+
+import java.util.List;
+
 public interface ScreenDao {
-    boolean addTheatre(Theatre theatre);
+    boolean addScreen(Screen screen);
 
-    Theatre getTheatreById(int theatreId);
+    Screen getScreenById(int screenId);
 
-    List<Theatre> getAllTheatres();
+    List<Screen> getAllScreens();
 
-    List<Theatre> getTheatresByCity(String city);
+    List<Screen> getScreensByTheatreId(int theatreId);
 
-    boolean updateTheatre(Theatre theatre);
+    boolean updateScreen(Screen screen);
 
-    boolean deleteTheatre(int theatreId);
+    boolean deleteScreen(int screenId);
 }
