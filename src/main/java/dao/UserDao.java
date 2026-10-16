@@ -1,14 +1,15 @@
-
+package dao;
+import java.util.List;
 public interface UserDao {
-    User login(String username, String password);
+    UserDao login(String username, String password);
 
-    User getUserById(int userId);
+    UserDao getUserById(int userId);
 
-    List<User> getAllUsers();
+    List<UserDao> getAllUsers();
 
-    boolean addUser(User user);
+    boolean addUser(UserDao user);
 
-    boolean updateUser(User user);
+    boolean updateUser(UserDao user);
 
     boolean deleteUser(int userId);
 }

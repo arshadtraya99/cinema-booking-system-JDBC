@@ -1,17 +1,17 @@
-
+import java.util.List;
 
 public interface SeatDao {
-    boolean addSeat(Seat seat);
+    boolean addSeat(SeatDao seat);
 
-    Seat getSeatById(int seatId);
+    SeatDao getSeatById(int seatId);
 
-    List<Seat> getAllSeats();
+    List<SeatDao> getAllSeats();
 
-    List<Seat> getSeatsByShowId(int showId);
+    List<SeatDao> getSeatsByShowId(int showId);
 
-    List<Seat> getAvailableSeatsByShowId(int showId);
+    List<SeatDao> getAvailableSeatsByShowId(int showId);
 
-    boolean updateSeat(Seat seat);
+    boolean updateSeat(SeatDao seat);
 
     boolean updateSeatBookingStatus(int seatId, boolean isBooked);
 
