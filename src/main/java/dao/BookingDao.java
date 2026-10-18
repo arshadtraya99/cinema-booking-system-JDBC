@@ -1,17 +1,21 @@
 package dao;
+
+import model.Booking;
+
 import java.util.List;
+
 public interface BookingDao {
-     boolean createBooking(BookingDao booking);
+    boolean createBooking(Booking booking);
 
-    BookingDao getBookingById(int bookingId);
+    Booking getBookingById(int bookingId);
 
-    List<BookingDao> getAllBookings();
+    List<Booking> getAllBookings();
 
-    List<BookingDao> getBookingsByClerkId(int clerkId);
+    List<Booking> getBookingsByClerkId(int clerkId);
 
-    List<BookingDao> getBookingsByShowId(int showId);
+    List<Booking> getBookingsByShowId(int showId);
 
-    List<BookingDao> getBookingsByCustomerName(String customerName);
+    List<Booking> getBookingsByCustomerName(String customerName);
 
     boolean cancelBooking(int bookingId);
 }

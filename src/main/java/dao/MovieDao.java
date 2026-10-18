@@ -1,14 +1,18 @@
 
 package dao;
+
+import model.Movie;
+
 import java.util.List;
+
 public interface MovieDao {
-    boolean addMovie(MovieDao movie);
+    boolean addMovie(Movie movie);
 
-    MovieDao getMovieById(int id);
+    Movie getMovieById(int id);
 
-    List<MovieDao> getMovies();
+    List<Movie> getMovies();
 
-    boolean updateMovie(MovieDao movie);
+    boolean updateMovie(Movie movie);
 
     boolean deleteMovie(int id);
 }

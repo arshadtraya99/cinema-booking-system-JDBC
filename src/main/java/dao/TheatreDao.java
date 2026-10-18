@@ -1,16 +1,19 @@
 package dao;
+
+import model.Theatre;
+
 import java.util.List;
 
 public interface TheatreDao {
-    boolean addTheatre(TheatreDao theatre);
+    boolean addTheatre(Theatre theatre);
 
-    TheatreDao getTheatreById(int theatreId);
+    Theatre getTheatreById(int theatreId);
 
-    List<TheatreDao > getAllTheatres();
+    List<Theatre> getAllTheatres();
 
-    List<TheatreDao> getTheatresByCity(String city);
+    List<Theatre> getTheatresByCity(String city);
 
-    boolean updateTheatre(TheatreDao theatre);
+    boolean updateTheatre(Theatre theatre);
 
     boolean deleteTheatre(int theatreId);
 }

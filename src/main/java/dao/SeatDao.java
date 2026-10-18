@@ -1,17 +1,21 @@
+package dao;
+
+import model.Seat;
+
 import java.util.List;
 
 public interface SeatDao {
-    boolean addSeat(SeatDao seat);
+    boolean addSeat(Seat seat);
 
-    SeatDao getSeatById(int seatId);
+    Seat getSeatById(int seatId);
 
-    List<SeatDao> getAllSeats();
+    List<Seat> getAllSeats();
 
-    List<SeatDao> getSeatsByShowId(int showId);
+    List<Seat> getSeatsByShowId(int showId);
 
-    List<SeatDao> getAvailableSeatsByShowId(int showId);
+    List<Seat> getAvailableSeatsByShowId(int showId);
 
-    boolean updateSeat(SeatDao seat);
+    boolean updateSeat(Seat seat);
 
     boolean updateSeatBookingStatus(int seatId, boolean isBooked);
 

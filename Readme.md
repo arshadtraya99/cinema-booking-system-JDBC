@@ -155,10 +155,15 @@ SmartCinemaBookingSystem/
 
 ## 🚀 Getting Started
 
-1. Install **Java JDK** and **MySQL Server**.
-2. Create the database using `database/schema.sql`.
-3. Update JDBC connection details (URL, username, password) in the DB config class.
-4. Compile and run the application.
+1. Install **JDK 17 or later**, **Maven**, and **MySQL Server**.
+2. Run `src/main/resources/cinema_booking_system.sql` in MySQL to create the schema.
+3. Configure the connection with `CINEMA_DB_URL`, `CINEMA_DB_USER`, and
+   `CINEMA_DB_PASSWORD` environment variables. The defaults are
+   `jdbc:mysql://localhost:3306/Cinema_booking_System`, `root`, and an empty password.
+4. Run `mvn test` to compile and test the project, or `mvn package` to build it.
+
+The JDBC DAOs use the model classes in `src/main/java/model` and expect the schema
+created by the SQL script above.
 
 ---
 
