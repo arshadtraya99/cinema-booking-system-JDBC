@@ -1,4 +1,4 @@
-package main.java.daoImplementation;
+package daoImplementation;
 
 import configuration.DBconnection;
 import dao.UserDao;
@@ -8,28 +8,52 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserDaoImpl implements UserDao {
 
     @Override
-    public boolean addUser(User user) {
-
-        String sql = "INSERT INTO Users (Name, Username, Password, Role) VALUES (?, ?, ?, ?)";
+    public User login(String username, String password) {
+        String sql = "SELECT * FROM USERS WHERE USERNAME = ? AND PASSWORD = ?";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, username);
+            statement.setString(2, password);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? mapUser(resultSet) : null;
+            }
+        } catch (SQLException e) {
+            System.err.println("Unable to authenticate user: " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public boolean addUser(User user) {
+
+        String sql = "INSERT INTO USERS (NAME, USERNAME, PASSWORD, ROLE) VALUES (?, ?, ?, ?)";
+
+        try (Connection connection = DBconnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     sql, Statement.RETURN_GENERATED_KEYS)) {
 
             statement.setString(1, user.getName());
             statement.setString(2, user.getUsername());
             statement.setString(3, user.getPassword());
             statement.setString(4, user.getRole());
 
-            return statement.executeUpdate() > 0;
+            if (statement.executeUpdate() == 0) return false;
+            try (ResultSet keys = statement.getGeneratedKeys()) {
+                if (keys.next()) user.setId(keys.getInt(1));
+            }
+            return true;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Unable to add user: " + e.getMessage());
             return false;
         }
     }
@@ -37,30 +61,19 @@ public class UserDaoImpl implements UserDao {
     @Override
     public User getUserById(int userId) {
 
-        String sql = "SELECT * FROM Users WHERE UserID = ?";
+        String sql = "SELECT * FROM USERS WHERE USER_ID = ?";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setInt(1, userId);
 
-            ResultSet resultSet = statement.executeQuery();
-
-            if (resultSet.next()) {
-
-                User user = new User();
-
-                user.setUserId(resultSet.getInt("UserID"));
-                user.setName(resultSet.getString("Name"));
-                user.setUsername(resultSet.getString("Username"));
-                user.setPassword(resultSet.getString("Password"));
-                user.setRole(resultSet.getString("Role"));
-
-                return user;
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? mapUser(resultSet) : null;
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Unable to fetch user: " + e.getMessage());
         }
 
         return null;
@@ -71,7 +84,7 @@ public class UserDaoImpl implements UserDao {
 
         List<User> users = new ArrayList<>();
 
-        String sql = "SELECT * FROM Users";
+        String sql = "SELECT * FROM USERS ORDER BY USER_ID";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
@@ -79,19 +92,11 @@ public class UserDaoImpl implements UserDao {
 
             while (resultSet.next()) {
 
-                User user = new User();
-
-                user.setUserId(resultSet.getInt("UserID"));
-                user.setName(resultSet.getString("Name"));
-                user.setUsername(resultSet.getString("Username"));
-                user.setPassword(resultSet.getString("Password"));
-                user.setRole(resultSet.getString("Role"));
-
-                users.add(user);
+                users.add(mapUser(resultSet));
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Unable to fetch users: " + e.getMessage());
         }
 
         return users;
@@ -101,9 +106,9 @@ public class UserDaoImpl implements UserDao {
     public boolean updateUser(User user) {
 
         String sql = """
-                UPDATE Users
-                SET Name = ?, Username = ?, Password = ?, Role = ?
-                WHERE UserID = ?
+                UPDATE USERS
+                SET NAME = ?, USERNAME = ?, PASSWORD = ?, ROLE = ?
+                WHERE USER_ID = ?
                 """;
 
         try (Connection connection = DBconnection.getConnection();
@@ -113,12 +118,12 @@ public class UserDaoImpl implements UserDao {
             statement.setString(2, user.getUsername());
             statement.setString(3, user.getPassword());
             statement.setString(4, user.getRole());
-            statement.setInt(5, user.getUserId());
+            statement.setInt(5, user.getId());
 
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Unable to update user: " + e.getMessage());
             return false;
         }
     }
@@ -126,7 +131,7 @@ public class UserDaoImpl implements UserDao {
     @Override
     public boolean deleteUser(int userId) {
 
-        String sql = "DELETE FROM Users WHERE UserID = ?";
+        String sql = "DELETE FROM USERS WHERE USER_ID = ?";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -136,8 +141,18 @@ public class UserDaoImpl implements UserDao {
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Unable to delete user: " + e.getMessage());
             return false;
         }
+    }
+
+    private User mapUser(ResultSet resultSet) throws SQLException {
+        User user = new User();
+        user.setId(resultSet.getInt("USER_ID"));
+        user.setName(resultSet.getString("NAME"));
+        user.setUsername(resultSet.getString("USERNAME"));
+        user.setPassword(resultSet.getString("PASSWORD"));
+        user.setRole(resultSet.getString("ROLE"));
+        return user;
     }
 }

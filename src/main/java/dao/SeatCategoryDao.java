@@ -1,13 +1,17 @@
 package dao;
+
+import model.SeatCategory;
+
 import java.util.List;
+
 public interface SeatCategoryDao {
-    boolean addSeatCategory(SeatCategoryDao seatCategory);
+    boolean addSeatCategory(SeatCategory seatCategory);
 
-    SeatCategoryDao getSeatCategoryById(int categoryId);
+    SeatCategory getSeatCategoryById(int categoryId);
 
-    List<SeatCategoryDao> getAllSeatCategories();
+    List<SeatCategory> getAllSeatCategories();
 
-    boolean updateSeatCategory(SeatCategoryDao seatCategory);
+    boolean updateSeatCategory(SeatCategory seatCategory);
 
     boolean deleteSeatCategory(int categoryId);
 }

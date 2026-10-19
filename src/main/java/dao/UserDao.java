@@ -1,15 +1,19 @@
 package dao;
+
+import model.User;
+
 import java.util.List;
+
 public interface UserDao {
-    UserDao login(String username, String password);
+    User login(String username, String password);
 
-    UserDao getUserById(int userId);
+    User getUserById(int userId);
 
-    List<UserDao> getAllUsers();
+    List<User> getAllUsers();
 
-    boolean addUser(UserDao user);
+    boolean addUser(User user);
 
-    boolean updateUser(UserDao user);
+    boolean updateUser(User user);
 
     boolean deleteUser(int userId);
 }

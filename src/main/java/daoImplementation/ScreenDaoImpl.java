@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,13 +20,18 @@ public class ScreenDaoImpl implements ScreenDao {
         String sql = "INSERT INTO Screens (THEATRE_ID, SCREEN_NAME, TOTAL_SEATS) VALUES (?, ?, ?)";
 
         try (Connection connection = DBconnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(
+                     sql, Statement.RETURN_GENERATED_KEYS)) {
 
             statement.setInt(1, screen.getTheatreId());
             statement.setString(2, screen.getName());
             statement.setInt(3, screen.getTotalSeats());
 
-            return statement.executeUpdate() > 0;
+            if (statement.executeUpdate() == 0) return false;
+            try (ResultSet keys = statement.getGeneratedKeys()) {
+                if (keys.next()) screen.setId(keys.getInt(1));
+            }
+            return true;
 
         } catch (SQLException e) {
             e.printStackTrace();
