@@ -42,9 +42,9 @@ public class InMemoryGateway implements CinemaGateway {
         addScreen(1, "Screen 1", 80);
         addScreen(1, "Screen 2", 80);
         addScreen(2, "Audi 1", 80);
-        addMovie("Interstellar", 169, "Sci-Fi");
-        addMovie("The Dark Knight", 152, "Action");
-        addMovie("La La Land", 128, "Romance");
+        addMovie("Interstellar", 169, "Sci-Fi", null, "https://www.youtube.com/watch?v=zSWdZVtXT7E");
+        addMovie("The Dark Knight", 152, "Action", null, "https://www.youtube.com/watch?v=EXeTwQWrcwY");
+        addMovie("La La Land", 128, "Romance", null, "https://www.youtube.com/watch?v=0pdqf4P9MB8");
         addShow(1, 1, LocalDate.now(), LocalTime.of(18, 30));
         addShow(1, 2, LocalDate.now(), LocalTime.of(21, 30));
         addShow(2, 3, LocalDate.now(), LocalTime.of(19, 0));
@@ -72,8 +72,28 @@ public class InMemoryGateway implements CinemaGateway {
     @Override public synchronized List<Movie> movies() { return List.copyOf(movies); }
 
     @Override
-    public synchronized void addMovie(String title, int duration, String genre) {
-        movies.add(new Movie(movieSeq++, title, duration, genre));
+    public synchronized void addMovie(String title, int duration, String genre, byte[] poster, String trailerUrl) {
+        movies.add(new Movie(movieSeq++, title, duration, genre, poster, trailerUrl));
+    }
+
+    @Override
+    public synchronized void updateMovie(int id, String title, int duration, String genre,
+                                         byte[] poster, String trailerUrl) {
+        for (int i = 0; i < movies.size(); i++) {
+            Movie movie = movies.get(i);
+            if (movie.id() == id) {
+                movies.set(i, new Movie(id, title, duration, genre, poster, trailerUrl));
+                for (int showIndex = 0; showIndex < shows.size(); showIndex++) {
+                    Show show = shows.get(showIndex);
+                    if (show.movieId() == id) {
+                        shows.set(showIndex, new Show(show.id(), show.movieId(), title,
+                                show.screenId(), show.theatreName(), show.screenName(), show.date(), show.time()));
+                    }
+                }
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Movie not found.");
     }
 
     @Override
@@ -96,6 +116,35 @@ public class InMemoryGateway implements CinemaGateway {
     }
 
     @Override
+    public synchronized void updateTheatre(int id, String name, String location, String city) {
+        boolean found = false;
+        for (int i = 0; i < theatres.size(); i++) {
+            Theatre theatre = theatres.get(i);
+            if (theatre.id() == id) {
+                theatres.set(i, new Theatre(id, name, location, city));
+                found = true;
+                break;
+            }
+        }
+        if (!found) throw new IllegalArgumentException("Theatre not found.");
+
+        for (int i = 0; i < screens.size(); i++) {
+            Screen screen = screens.get(i);
+            if (screen.theatreId() == id) {
+                screens.set(i, new Screen(screen.id(), id, screen.name(), name, screen.totalSeats()));
+            }
+        }
+        for (int i = 0; i < shows.size(); i++) {
+            Show show = shows.get(i);
+            if (screens.stream().anyMatch(screen -> screen.id() == show.screenId())) {
+                Screen screen = screens.stream().filter(item -> item.id() == show.screenId()).findFirst().orElseThrow();
+                shows.set(i, new Show(show.id(), show.movieId(), show.movieTitle(), show.screenId(),
+                        screen.theatreName(), screen.name(), show.date(), show.time()));
+            }
+        }
+    }
+
+    @Override
     public synchronized void deleteTheatre(int theatreId) {
         theatres.removeIf(theatre -> theatre.id() == theatreId);
         screens.removeIf(screen -> screen.theatreId() == theatreId);
@@ -111,6 +160,29 @@ public class InMemoryGateway implements CinemaGateway {
     }
 
     @Override
+    public synchronized void updateScreen(int id, int theatreId, String name, int totalSeats) {
+        Theatre theatre = theatres.stream().filter(item -> item.id() == theatreId).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Theatre not found."));
+        boolean found = false;
+        for (int i = 0; i < screens.size(); i++) {
+            Screen screen = screens.get(i);
+            if (screen.id() == id) {
+                screens.set(i, new Screen(id, theatreId, name, theatre.name(), totalSeats));
+                found = true;
+                break;
+            }
+        }
+        if (!found) throw new IllegalArgumentException("Screen not found.");
+        for (int i = 0; i < shows.size(); i++) {
+            Show show = shows.get(i);
+            if (show.screenId() == id) {
+                shows.set(i, new Show(show.id(), show.movieId(), show.movieTitle(), id,
+                        theatre.name(), name, show.date(), show.time()));
+            }
+        }
+    }
+
+    @Override
     public synchronized void deleteScreen(int screenId) {
         screens.removeIf(screen -> screen.id() == screenId);
     }
@@ -120,6 +192,29 @@ public class InMemoryGateway implements CinemaGateway {
     @Override
     public synchronized void addCategory(String name, BigDecimal price) {
         categories.add(new SeatCategory(categories.size() + 1, name, price));
+    }
+
+    @Override
+    public synchronized void updateCategory(int id, String name, BigDecimal price) {
+        String previousName = null;
+        for (int i = 0; i < categories.size(); i++) {
+            SeatCategory category = categories.get(i);
+            if (category.id() == id) {
+                previousName = category.name();
+                categories.set(i, new SeatCategory(id, name, price));
+                break;
+            }
+        }
+        if (previousName == null) throw new IllegalArgumentException("Seat category not found.");
+        for (Map.Entry<Integer, List<Seat>> entry : seats.entrySet()) {
+            List<Seat> updatedSeats = new ArrayList<>();
+            for (Seat seat : entry.getValue()) {
+                updatedSeats.add(seat.category().equals(previousName)
+                        ? new Seat(seat.id(), seat.showId(), name, price, seat.row(), seat.number(), seat.booked())
+                        : seat);
+            }
+            entry.setValue(updatedSeats);
+        }
     }
 
     @Override public synchronized List<Show> shows() { return List.copyOf(shows); }
@@ -145,6 +240,26 @@ public class InMemoryGateway implements CinemaGateway {
             }
         }
         seats.put(showId, list);
+    }
+
+    @Override
+    public synchronized void updateShow(int id, int movieId, LocalDate date, LocalTime time) {
+        Movie movie = movies.stream().filter(item -> item.id() == movieId).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Movie not found."));
+        for (int i = 0; i < shows.size(); i++) {
+            Show show = shows.get(i);
+            if (show.id() == id) {
+                boolean slotTaken = shows.stream().anyMatch(other -> other.id() != id
+                        && other.screenId() == show.screenId()
+                        && other.date().equals(date)
+                        && other.time().equals(time));
+                if (slotTaken) throw new IllegalArgumentException("That screen already has a show at this time.");
+                shows.set(i, new Show(id, movieId, movie.title(), show.screenId(),
+                        show.theatreName(), show.screenName(), date, time));
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Show not found.");
     }
 
     @Override

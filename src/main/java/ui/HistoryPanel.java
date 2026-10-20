@@ -23,9 +23,9 @@ public class HistoryPanel extends JPanel {
 
     public HistoryPanel(CinemaGateway gateway) {
         this.gateway = gateway;
-        setLayout(new BorderLayout(0, 12));
+        setLayout(new BorderLayout(0, 18));
         setBackground(UiTheme.PAGE);
-        UiTheme.pad(this, 16, 20, 16, 20);
+        UiTheme.pad(this, 22, 26, 22, 26);
 
         JLabel title = UiTheme.heading("Booking history", 26);
         JLabel sub = UiTheme.muted("Every confirmed ticket, with a running box-office total.");
@@ -36,7 +36,7 @@ public class HistoryPanel extends JPanel {
         titles.setOpaque(false);
         titles.setLayout(new javax.swing.BoxLayout(titles, javax.swing.BoxLayout.Y_AXIS));
         titles.add(title);
-        titles.add(javax.swing.Box.createVerticalStrut(4));
+        titles.add(javax.swing.Box.createVerticalStrut(7));
         titles.add(sub);
         heading.add(titles, BorderLayout.WEST);
 
@@ -49,10 +49,10 @@ public class HistoryPanel extends JPanel {
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(true);
-        bottom.setBackground(Color.WHITE);
+        bottom.setBackground(UiTheme.CARD);
         bottom.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(UiTheme.LINE),
-                javax.swing.BorderFactory.createEmptyBorder(12, 16, 12, 16)));
+                javax.swing.BorderFactory.createEmptyBorder(16, 20, 16, 20)));
         bottom.add(revenue, BorderLayout.WEST);
         bottom.add(reload, BorderLayout.EAST);
 

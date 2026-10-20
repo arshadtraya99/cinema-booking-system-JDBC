@@ -16,7 +16,7 @@ public interface CinemaGateway {
         public boolean isAdmin() { return "Admin".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role); }
     }
 
-    record Movie(int id, String title, int duration, String genre) {
+    record Movie(int id, String title, int duration, String genre, byte[] poster, String trailerUrl) {
         @Override public String toString() { return title; }
     }
 
@@ -57,23 +57,28 @@ public interface CinemaGateway {
     User register(String name, String username, String password, String role);
 
     List<Movie> movies();
-    void addMovie(String title, int durationMinutes, String genre);
+    void addMovie(String title, int durationMinutes, String genre, byte[] poster, String trailerUrl);
+    void updateMovie(int movieId, String title, int durationMinutes, String genre, byte[] poster, String trailerUrl);
     void deleteMovie(int movieId);
 
     List<Theatre> theatres();
     void addTheatre(String name, String location, String city);
+    void updateTheatre(int theatreId, String name, String location, String city);
     void deleteTheatre(int theatreId);
 
     List<Screen> screens();
     void addScreen(int theatreId, String name, int totalSeats);
+    void updateScreen(int screenId, int theatreId, String name, int totalSeats);
     void deleteScreen(int screenId);
 
     List<SeatCategory> categories();
     void addCategory(String name, BigDecimal price);
+    void updateCategory(int categoryId, String name, BigDecimal price);
 
     List<Show> shows();
     List<Show> showsForMovie(int movieId);
     void addShow(int movieId, int screenId, LocalDate date, LocalTime time);
+    void updateShow(int showId, int movieId, LocalDate date, LocalTime time);
 
     List<Seat> seats(int showId);
 

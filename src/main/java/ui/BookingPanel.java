@@ -6,9 +6,11 @@ import ui.CinemaGateway.Seat;
 import ui.CinemaGateway.Show;
 import ui.CinemaGateway.User;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -17,17 +19,28 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,6 +48,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** BookMyShow-style flow: pick a movie, pick a showtime, pick seats. */
@@ -47,14 +64,20 @@ public class BookingPanel extends JPanel {
     private final User clerk;
     private final CardLayout cards = new CardLayout();
     private final JPanel pages = new JPanel(cards);
-    private final JPanel movieGrid = new JPanel(new WrapLayout(FlowLayout.LEFT, 18, 18));
+    private static final Pattern YOUTUBE_ID = Pattern.compile(
+            "(?:youtu\\.be/|youtube\\.com/(?:watch\\?v=|embed/|shorts/|live/))([A-Za-z0-9_-]{11})");
+
+    private final JPanel movieGrid = new JPanel(new WrapLayout(FlowLayout.LEFT, 16, 18));
     private final JPanel showList = new JPanel();
     private final JPanel dateStrip = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    private final JPanel trailerSection = new JPanel(new BorderLayout());
     private final JLabel movieHeading = UiTheme.heading("", 22);
     private final JLabel movieMeta = UiTheme.muted("");
     private final JLabel seatHeading = UiTheme.heading("", 18);
     private final JLabel seatMeta = UiTheme.muted("");
     private final JTextField search = new JTextField(22);
+    private final JComboBox<String> genreFilter = new JComboBox<>();
+    private final JLabel resultsLabel = UiTheme.muted("");
     private final JTextField customerField = new JTextField(16);
     private final JLabel totalLabel = UiTheme.heading("Rs 0", 20);
     private final JLabel selectedLabel = UiTheme.muted("No seats selected");
@@ -64,6 +87,7 @@ public class BookingPanel extends JPanel {
     private Movie selectedMovie;
     private LocalDate selectedDate;
     private Show selectedShow;
+    private boolean updatingGenres;
     private final List<JButton> dateButtons = new ArrayList<>();
 
     public BookingPanel(CinemaGateway gateway, User clerk) {
@@ -82,22 +106,61 @@ public class BookingPanel extends JPanel {
     }
 
     public void refresh() {
+        String selectedGenre = (String) genreFilter.getSelectedItem();
+        updatingGenres = true;
+        genreFilter.removeAllItems();
+        genreFilter.addItem("All genres");
+        TreeSet<String> genres = new TreeSet<>(gateway.movies().stream()
+                .map(Movie::genre)
+                .filter(genre -> genre != null && !genre.isBlank())
+                .toList());
+        genres.forEach(genreFilter::addItem);
+        if (selectedGenre != null && genres.contains(selectedGenre)) genreFilter.setSelectedItem(selectedGenre);
+        else genreFilter.setSelectedItem("All genres");
+        updatingGenres = false;
         rebuildMovieGrid(search.getText());
         cards.show(pages, "movies");
     }
 
     private JPanel moviesPage() {
-        JPanel page = new JPanel(new BorderLayout());
+        JPanel page = new JPanel(new BorderLayout(0, 14));
         page.setBackground(UiTheme.PAGE);
-        UiTheme.pad(page, 16, 20, 16, 20);
+        UiTheme.pad(page, 26, 28, 24, 28);
 
-        JLabel title = UiTheme.heading("Now showing", 26);
-        JLabel sub = UiTheme.muted("Pick a title, then a theatre and time — just like BookMyShow.");
+        JLabel title = UiTheme.heading("Find your next favourite", 28);
+        JLabel sub = UiTheme.muted("Choose a film, find your showtime, and settle into the perfect seat.");
         UiTheme.styleField(search);
         search.putClientProperty("JTextField.placeholderText", "Search movies");
-        search.addActionListener(e -> rebuildMovieGrid(search.getText()));
-        JButton go = UiTheme.darkButton("Search");
-        go.addActionListener(e -> rebuildMovieGrid(search.getText()));
+        Timer searchDebounce = new Timer(180, e -> rebuildMovieGrid(search.getText()));
+        searchDebounce.setRepeats(false);
+        search.addActionListener(e -> {
+            searchDebounce.stop();
+            rebuildMovieGrid(search.getText());
+        });
+        search.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { searchDebounce.restart(); }
+            @Override public void removeUpdate(DocumentEvent e) { searchDebounce.restart(); }
+            @Override public void changedUpdate(DocumentEvent e) { searchDebounce.restart(); }
+        });
+        genreFilter.setBackground(UiTheme.CARD_RAISED);
+        genreFilter.setForeground(UiTheme.TEXT);
+        genreFilter.setFont(UiTheme.font(Font.PLAIN, 13));
+        genreFilter.setPreferredSize(new Dimension(150, 42));
+        genreFilter.addActionListener(e -> {
+            if (!updatingGenres) {
+                searchDebounce.stop();
+                rebuildMovieGrid(search.getText());
+            }
+        });
+        JButton clear = UiTheme.ghostButton("Clear");
+        clear.setToolTipText("Clear movie search");
+        clear.addActionListener(e -> {
+            searchDebounce.stop();
+            search.setText("");
+            genreFilter.setSelectedItem("All genres");
+            rebuildMovieGrid(search.getText());
+            search.requestFocusInWindow();
+        });
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
@@ -105,13 +168,17 @@ public class BookingPanel extends JPanel {
         titles.setOpaque(false);
         titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
         titles.add(title);
-        titles.add(Box.createVerticalStrut(4));
+        titles.add(Box.createVerticalStrut(6));
         titles.add(sub);
-        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        titles.add(Box.createVerticalStrut(5));
+        titles.add(resultsLabel);
+        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         searchRow.setOpaque(false);
-        search.setPreferredSize(new Dimension(240, 36));
+        search.setPreferredSize(new Dimension(210, 42));
+        searchRow.add(genreFilter);
         searchRow.add(search);
-        searchRow.add(go);
+        searchRow.add(clear);
+        top.setBorder(BorderFactory.createEmptyBorder(0, 0, 28, 0));
         top.add(titles, BorderLayout.WEST);
         top.add(searchRow, BorderLayout.EAST);
 
@@ -129,12 +196,12 @@ public class BookingPanel extends JPanel {
     private JPanel showsPage() {
         JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setBackground(UiTheme.PAGE);
-        UiTheme.pad(page, 16, 20, 16, 20);
+        UiTheme.pad(page, 22, 26, 22, 26);
 
         JButton back = UiTheme.ghostButton("← Movies");
         back.addActionListener(e -> cards.show(pages, "movies"));
 
-        JPanel header = new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout(16, 0));
         header.setOpaque(false);
         JPanel titles = new JPanel();
         titles.setOpaque(false);
@@ -147,7 +214,7 @@ public class BookingPanel extends JPanel {
 
         JPanel datesWrap = new JPanel(new BorderLayout());
         datesWrap.setOpaque(true);
-        datesWrap.setBackground(Color.WHITE);
+        datesWrap.setBackground(UiTheme.CARD);
         datesWrap.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UiTheme.LINE),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)));
@@ -161,10 +228,16 @@ public class BookingPanel extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
 
+        trailerSection.setOpaque(false);
+
         page.add(header, BorderLayout.NORTH);
         JPanel center = new JPanel(new BorderLayout(0, 12));
         center.setOpaque(false);
-        center.add(datesWrap, BorderLayout.NORTH);
+        JPanel top = new JPanel(new BorderLayout(0, 12));
+        top.setOpaque(false);
+        top.add(trailerSection, BorderLayout.NORTH);
+        top.add(datesWrap, BorderLayout.SOUTH);
+        center.add(top, BorderLayout.NORTH);
         center.add(scroll, BorderLayout.CENTER);
         page.add(center, BorderLayout.CENTER);
         return page;
@@ -172,15 +245,15 @@ public class BookingPanel extends JPanel {
 
     private JPanel seatsPage() {
         JPanel page = new JPanel(new BorderLayout());
-        page.setBackground(Color.WHITE);
+        page.setBackground(UiTheme.PAGE);
 
         JButton back = UiTheme.ghostButton("← Showtimes");
         back.addActionListener(e -> cards.show(pages, "shows"));
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(0xFAFAFA));
+        JPanel header = new JPanel(new BorderLayout(18, 0));
+        header.setBackground(UiTheme.CARD);
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiTheme.LINE));
-        UiTheme.pad(header, 10, 16, 10, 16);
+        UiTheme.pad(header, 14, 22, 14, 22);
         JPanel titles = new JPanel();
         titles.setOpaque(false);
         titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
@@ -190,22 +263,26 @@ public class BookingPanel extends JPanel {
         header.add(titles, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
-        footer.setBackground(Color.WHITE);
+        footer.setBackground(UiTheme.CARD);
         footer.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, UiTheme.LINE),
                 BorderFactory.createEmptyBorder(12, 18, 12, 18)));
         UiTheme.styleField(customerField);
-        customerField.setPreferredSize(new Dimension(220, 36));
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        customerField.setPreferredSize(new Dimension(220, 44));
+        customerField.setToolTipText("Enter the customer's name");
+        customerField.addActionListener(e -> book());
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
         left.setOpaque(false);
         left.add(UiTheme.muted("Customer"));
         left.add(customerField);
         left.add(selectedLabel);
 
-        payButton.setPreferredSize(new Dimension(160, 42));
+        payButton.setText("Confirm booking");
+        payButton.setToolTipText("Confirm payment for the selected seats");
+        payButton.setPreferredSize(new Dimension(188, 48));
         payButton.setEnabled(false);
         payButton.addActionListener(e -> book());
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 18, 0));
         right.setOpaque(false);
         right.add(totalLabel);
         right.add(payButton);
@@ -221,22 +298,39 @@ public class BookingPanel extends JPanel {
 
     private void rebuildMovieGrid(String query) {
         movieGrid.removeAll();
-        String needle = query == null ? "" : query.trim().toLowerCase();
+        String needle = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String selectedGenre = (String) genreFilter.getSelectedItem();
         List<Movie> list = gateway.movies();
         int shown = 0;
         for (Movie movie : list) {
             if (!needle.isEmpty()
-                    && !movie.title().toLowerCase().contains(needle)
-                    && !movie.genre().toLowerCase().contains(needle)) {
+                    && !movie.title().toLowerCase(Locale.ROOT).contains(needle)
+                    && !movie.genre().toLowerCase(Locale.ROOT).contains(needle)) {
+                continue;
+            }
+            if (selectedGenre != null && !"All genres".equals(selectedGenre)
+                    && !selectedGenre.equals(movie.genre())) {
                 continue;
             }
             movieGrid.add(movieCard(movie));
             shown++;
         }
+        resultsLabel.setText(shown + (shown == 1 ? " film" : " films") + " to explore");
         if (shown == 0) {
-            movieGrid.add(UiTheme.muted(list.isEmpty()
-                    ? "No movies yet. An admin can add titles from the Manage tab."
-                    : "No titles match that search."));
+            JLabel emptyTitle = UiTheme.heading(list.isEmpty() ? "Your screen is waiting" : "No films found", 18);
+            JLabel emptyCopy = UiTheme.muted(list.isEmpty()
+                    ? "An admin can add movies from the Manage section."
+                    : "Try another title or genre, or clear your filters.");
+            JPanel empty = new JPanel();
+            empty.setLayout(new BoxLayout(empty, BoxLayout.Y_AXIS));
+            empty.setBackground(UiTheme.CARD);
+            empty.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(UiTheme.LINE),
+                    BorderFactory.createEmptyBorder(24, 28, 24, 28)));
+            empty.add(emptyTitle);
+            empty.add(Box.createVerticalStrut(6));
+            empty.add(emptyCopy);
+            movieGrid.add(empty);
         }
         movieGrid.revalidate();
         movieGrid.repaint();
@@ -244,26 +338,39 @@ public class BookingPanel extends JPanel {
 
     private JPanel movieCard(Movie movie) {
         JPanel card = new JPanel(new BorderLayout());
-        card.setPreferredSize(new Dimension(180, 300));
-        card.setBackground(Color.WHITE);
+        card.setPreferredSize(new Dimension(198, 336));
+        card.setBackground(UiTheme.CARD);
         card.setBorder(BorderFactory.createLineBorder(UiTheme.LINE));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        Image posterImage = decodePoster(movie.poster());
         JPanel poster = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(UiTheme.posterColor(movie.title()));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(255, 255, 255, 40));
-                g2.fillOval(-20, -20, 120, 120);
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                if (posterImage != null) {
+                    int iw = posterImage.getWidth(null);
+                    int ih = posterImage.getHeight(null);
+                    if (iw > 0 && ih > 0) {
+                        double scale = Math.max(getWidth() / (double) iw, getHeight() / (double) ih);
+                        int w = (int) Math.round(iw * scale);
+                        int h = (int) Math.round(ih * scale);
+                        g2.drawImage(posterImage, (getWidth() - w) / 2, (getHeight() - h) / 2, w, h, null);
+                    }
+                } else {
+                    g2.setColor(UiTheme.posterColor(movie.title()));
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                    g2.setColor(new Color(255, 255, 255, 40));
+                    g2.fillOval(-20, -20, 120, 120);
+                }
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         poster.setOpaque(false);
-        poster.setPreferredSize(new Dimension(180, 210));
-        JLabel initials = new JLabel(initials(movie.title()), SwingConstants.CENTER);
+        poster.setPreferredSize(new Dimension(198, 232));
+        JLabel initials = new JLabel(posterImage == null ? initials(movie.title()) : "", SwingConstants.CENTER);
         initials.setForeground(Color.WHITE);
         initials.setFont(UiTheme.font(Font.BOLD, 28));
         JLabel genre = new JLabel("  " + movie.genre() + "  ", SwingConstants.CENTER);
@@ -279,22 +386,42 @@ public class BookingPanel extends JPanel {
 
         JPanel info = new JPanel();
         info.setOpaque(true);
-        info.setBackground(Color.WHITE);
+        info.setBackground(UiTheme.CARD);
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-        UiTheme.pad(info, 10, 10, 10, 10);
+        UiTheme.pad(info, 14, 14, 14, 14);
         JLabel name = new JLabel("<html><b>" + movie.title() + "</b></html>");
         name.setForeground(UiTheme.TEXT);
         JLabel dur = UiTheme.muted(movie.duration() + " min  ·  Book tickets");
         info.add(name);
-        info.add(Box.createVerticalStrut(4));
+        info.add(Box.createVerticalStrut(7));
         info.add(dur);
 
         card.add(poster, BorderLayout.CENTER);
         card.add(info, BorderLayout.SOUTH);
-        card.addMouseListener(new java.awt.event.MouseAdapter() {
+        java.awt.event.MouseAdapter openAction = new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) { openMovie(movie); }
+        };
+        addMovieCardAction(card, openAction);
+        card.setFocusable(true);
+        card.getInputMap(JPanel.WHEN_FOCUSED).put(javax.swing.KeyStroke.getKeyStroke("ENTER"), "openMovie");
+        card.getActionMap().put("openMovie", new javax.swing.AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent e) { openMovie(movie); }
         });
+        card.getAccessibleContext().setAccessibleName(movie.title());
+        card.getAccessibleContext().setAccessibleDescription(
+                movie.genre() + ", " + movie.duration() + " minutes. Press Enter to view showtimes.");
         return card;
+    }
+
+    private static void addMovieCardAction(java.awt.Container parent, java.awt.event.MouseListener listener) {
+        parent.addMouseListener(listener);
+        for (java.awt.Component child : parent.getComponents()) {
+            if (child instanceof java.awt.Container container) {
+                addMovieCardAction(container, listener);
+            } else {
+                child.addMouseListener(listener);
+            }
+        }
     }
 
     private void openMovie(Movie movie) {
@@ -306,9 +433,105 @@ public class BookingPanel extends JPanel {
                 .toList();
         List<LocalDate> dates = shows.stream().map(Show::date).distinct().toList();
         selectedDate = dates.isEmpty() ? null : dates.get(0);
+        rebuildTrailerSection(movie);
         rebuildDateStrip(dates);
         rebuildShowList(shows);
         cards.show(pages, "shows");
+    }
+
+    private void rebuildTrailerSection(Movie movie) {
+        trailerSection.removeAll();
+        JPanel card = new JPanel(new BorderLayout(16, 0));
+        card.setBackground(UiTheme.CARD);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UiTheme.LINE),
+                BorderFactory.createEmptyBorder(16, 16, 16, 20)));
+
+        Image posterImage = decodePoster(movie.poster());
+        JPanel preview = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                if (posterImage != null) {
+                    int iw = posterImage.getWidth(null);
+                    int ih = posterImage.getHeight(null);
+                    if (iw > 0 && ih > 0) {
+                        double scale = Math.max(getWidth() / (double) iw, getHeight() / (double) ih);
+                        int w = (int) Math.round(iw * scale);
+                        int h = (int) Math.round(ih * scale);
+                        g2.drawImage(posterImage, (getWidth() - w) / 2, (getHeight() - h) / 2, w, h, null);
+                    }
+                } else {
+                    g2.setColor(UiTheme.posterColor(movie.title()));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                }
+                g2.setColor(new Color(0, 0, 0, 110));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                int size = 46;
+                int x = (getWidth() - size) / 2;
+                int y = (getHeight() - size) / 2;
+                g2.setColor(new Color(255, 255, 255, 235));
+                g2.fillOval(x, y, size, size);
+                g2.setColor(UiTheme.PINK);
+                int[] px = {x + 17, x + 17, x + 34};
+                int[] py = {y + 13, y + 33, y + 23};
+                g2.fillPolygon(px, py, 3);
+                g2.dispose();
+            }
+        };
+        preview.setPreferredSize(new Dimension(220, 124));
+        preview.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        preview.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) { playTrailer(movie); }
+        });
+
+        JPanel copy = new JPanel();
+        copy.setOpaque(false);
+        copy.setLayout(new BoxLayout(copy, BoxLayout.Y_AXIS));
+        copy.add(UiTheme.heading("Watch trailer", 16));
+        copy.add(Box.createVerticalStrut(7));
+        copy.add(UiTheme.muted("Play the official trailer before you pick seats."));
+        copy.add(Box.createVerticalStrut(16));
+        JButton play = UiTheme.primaryButton("▶  Play trailer");
+        play.setAlignmentX(LEFT_ALIGNMENT);
+        play.addActionListener(e -> playTrailer(movie));
+        copy.add(play);
+
+        card.add(preview, BorderLayout.WEST);
+        card.add(copy, BorderLayout.CENTER);
+        trailerSection.add(card, BorderLayout.CENTER);
+        trailerSection.revalidate();
+        trailerSection.repaint();
+    }
+
+    private void playTrailer(Movie movie) {
+        String url = trailerWatchUrl(movie);
+        try {
+            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                throw new IllegalStateException("This computer cannot open a browser.");
+            }
+            Desktop.getDesktop().browse(URI.create(url));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Could not play the trailer.\n" + (ex.getMessage() == null ? url : ex.getMessage()),
+                    "Trailer", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static String trailerWatchUrl(Movie movie) {
+        String stored = movie.trailerUrl() == null ? "" : movie.trailerUrl().trim();
+        String videoId = youtubeId(stored);
+        if (videoId != null) return "https://www.youtube.com/watch?v=" + videoId + "&autoplay=1";
+        if (!stored.isEmpty() && (stored.startsWith("http://") || stored.startsWith("https://"))) return stored;
+        String query = URLEncoder.encode(movie.title() + " official trailer", StandardCharsets.UTF_8);
+        return "https://www.youtube.com/results?search_query=" + query;
+    }
+
+    private static String youtubeId(String url) {
+        if (url == null || url.isBlank()) return null;
+        Matcher matcher = YOUTUBE_ID.matcher(url);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private void rebuildDateStrip(List<LocalDate> dates) {
@@ -336,7 +559,7 @@ public class BookingPanel extends JPanel {
     private void styleDateChip(JButton button, boolean selected) {
         button.setOpaque(true);
         button.setContentAreaFilled(true);
-        button.setBackground(selected ? UiTheme.PINK : Color.WHITE);
+        button.setBackground(selected ? UiTheme.PINK : UiTheme.CARD_RAISED);
         button.setForeground(selected ? Color.WHITE : UiTheme.TEXT);
     }
 
@@ -363,15 +586,16 @@ public class BookingPanel extends JPanel {
 
     private JPanel theatreCard(String theatreName, List<Show> shows) {
         JPanel card = new JPanel(new BorderLayout(0, 10));
-        card.setBackground(Color.WHITE);
+        card.setBackground(UiTheme.CARD);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UiTheme.LINE),
-                BorderFactory.createEmptyBorder(14, 16, 14, 16)));
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+                BorderFactory.createEmptyBorder(18, 20, 18, 20)));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 
         Show first = shows.get(0);
         JLabel name = UiTheme.heading(theatreName, 16);
-        JLabel loc = UiTheme.muted(first.screenName() + " and more screens");
+        JLabel loc = UiTheme.muted(first.screenName() + "  ·  " + shows.size()
+                + (shows.size() == 1 ? " showtime" : " showtimes"));
         JPanel titles = new JPanel();
         titles.setOpaque(false);
         titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
@@ -392,7 +616,7 @@ public class BookingPanel extends JPanel {
         JButton chip = new JButton(show.time().format(TIME));
         chip.setFocusPainted(false);
         chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        chip.setBackground(Color.WHITE);
+        chip.setBackground(UiTheme.CARD_RAISED);
         chip.setForeground(UiTheme.SHOW_GREEN);
         chip.setFont(UiTheme.font(Font.BOLD, 13));
         chip.setBorder(BorderFactory.createCompoundBorder(
@@ -416,11 +640,18 @@ public class BookingPanel extends JPanel {
     private void updateSummary(List<Seat> selected) {
         if (selected.isEmpty()) {
             selectedLabel.setText("No seats selected");
+            selectedLabel.setToolTipText(null);
             totalLabel.setText("Rs 0");
             payButton.setEnabled(false);
             return;
         }
-        selectedLabel.setText(selected.stream().map(Seat::label).collect(Collectors.joining(", ")));
+        String seatNames = selected.stream().map(Seat::label).collect(Collectors.joining(", "));
+        String shortList = seatNames.length() > 28 ? seatNames.substring(0, 25) + "..." : seatNames;
+        selectedLabel.setText(selected.size() + (selected.size() == 1 ? " seat" : " seats")
+                + " selected  ·  " + shortList);
+        selectedLabel.setToolTipText(seatNames);
+        selectedLabel.getAccessibleContext().setAccessibleDescription(
+                selected.size() + " seats selected: " + seatNames);
         BigDecimal total = selected.stream().map(Seat::price).reduce(BigDecimal.ZERO, BigDecimal::add);
         totalLabel.setText("Rs " + total);
         payButton.setEnabled(true);
@@ -475,6 +706,16 @@ public class BookingPanel extends JPanel {
         area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
         area.setEditable(false);
         JOptionPane.showMessageDialog(this, area, "Booking confirmed", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private static Image decodePoster(byte[] data) {
+        if (data == null || data.length == 0) return null;
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
+            return image;
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     private static String initials(String title) {

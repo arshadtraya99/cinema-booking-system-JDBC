@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class MovieDaoImpl implements MovieDao {
 
     @Override
     public boolean addMovie(Movie movie) {
-        String sql = "INSERT INTO MOVIES (TITLE, DURATION, GENRE) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO MOVIES (TITLE, DURATION, GENRE, POSTER, TRAILER_URL) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
@@ -24,6 +25,9 @@ public class MovieDaoImpl implements MovieDao {
             statement.setString(1, movie.getTitle());
             statement.setFloat(2, movie.getDuration());
             statement.setString(3, movie.getGenre());
+            if (movie.getPoster() == null) statement.setNull(4, Types.BLOB);
+            else statement.setBytes(4, movie.getPoster());
+            statement.setString(5, movie.getTrailerUrl());
             if (statement.executeUpdate() == 0) return false;
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 if (keys.next()) movie.setId(keys.getInt(1));
@@ -68,14 +72,17 @@ public class MovieDaoImpl implements MovieDao {
 
     @Override
     public boolean updateMovie(Movie movie) {
-        String sql = "UPDATE MOVIES SET TITLE = ?, DURATION = ?, GENRE = ? WHERE MOVIE_ID = ?";
+        String sql = "UPDATE MOVIES SET TITLE = ?, DURATION = ?, GENRE = ?, POSTER = ?, TRAILER_URL = ? WHERE MOVIE_ID = ?";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, movie.getTitle());
             statement.setFloat(2, movie.getDuration());
             statement.setString(3, movie.getGenre());
-            statement.setInt(4, movie.getId());
+            if (movie.getPoster() == null) statement.setNull(4, Types.BLOB);
+            else statement.setBytes(4, movie.getPoster());
+            statement.setString(5, movie.getTrailerUrl());
+            statement.setInt(6, movie.getId());
             return statement.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Unable to update movie: " + e.getMessage());
@@ -103,6 +110,8 @@ public class MovieDaoImpl implements MovieDao {
         movie.setTitle(resultSet.getString("TITLE"));
         movie.setDuration(resultSet.getFloat("DURATION"));
         movie.setGenre(resultSet.getString("GENRE"));
+        movie.setPoster(resultSet.getBytes("POSTER"));
+        movie.setTrailerUrl(resultSet.getString("TRAILER_URL"));
         return movie;
     }
 }

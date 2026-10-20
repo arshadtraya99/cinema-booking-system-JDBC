@@ -3,13 +3,15 @@ package ui;
 import ui.CinemaGateway.User;
 
 import javax.swing.JButton;
+import javax.swing.ButtonGroup;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
+import javax.swing.JToggleButton;
+import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -25,52 +27,106 @@ public class MainFrame extends JFrame {
 
         JPanel shell = new JPanel(new BorderLayout());
         shell.setBackground(UiTheme.PAGE);
-        shell.add(header(gateway, user), BorderLayout.NORTH);
-
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.setFont(UiTheme.font(Font.BOLD, 13));
-        tabs.setBackground(UiTheme.PAGE);
-        tabs.setForeground(UiTheme.TEXT);
 
         BookingPanel booking = new BookingPanel(gateway, user);
         HistoryPanel history = new HistoryPanel(gateway);
         AdminPanel admin = user.isAdmin() ? new AdminPanel(gateway) : null;
 
-        tabs.addTab("Now showing", booking);
-        tabs.addTab("Bookings", history);
-        if (admin != null) tabs.addTab("Manage", admin);
+        CardLayout contentLayout = new CardLayout();
+        JPanel content = new JPanel(contentLayout);
+        content.add(booking, "films");
+        content.add(history, "bookings");
+        if (admin != null) content.add(admin, "manage");
 
-        tabs.addChangeListener(e -> {
-            Component selected = tabs.getSelectedComponent();
-            if (selected == booking) booking.refresh();
-            else if (selected == history) history.refresh();
-            else if (admin != null && selected == admin) admin.refresh();
+        JToggleButton filmsButton = navButton("01   FILMS", true);
+        JToggleButton bookingsButton = navButton("02   BOOKINGS", false);
+        ButtonGroup navGroup = new ButtonGroup();
+        navGroup.add(filmsButton);
+        navGroup.add(bookingsButton);
+        JPanel navigation = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        navigation.setBackground(UiTheme.NAVY);
+        navigation.setBorder(BorderFactory.createEmptyBorder(0, 22, 0, 22));
+        navigation.setPreferredSize(new Dimension(0, 48));
+        navigation.add(filmsButton);
+        navigation.add(bookingsButton);
+
+        filmsButton.addActionListener(e -> {
+            contentLayout.show(content, "films");
+            booking.refresh();
         });
+        bookingsButton.addActionListener(e -> {
+            contentLayout.show(content, "bookings");
+            history.refresh();
+        });
+        if (admin != null) {
+            JToggleButton manageButton = navButton("03   MANAGE", false);
+            navGroup.add(manageButton);
+            navigation.add(manageButton);
+            manageButton.addActionListener(e -> {
+                contentLayout.show(content, "manage");
+                admin.refresh();
+            });
+        }
 
-        shell.add(tabs, BorderLayout.CENTER);
+        JPanel top = new JPanel(new BorderLayout());
+        top.add(header(gateway, user), BorderLayout.NORTH);
+        top.add(navigation, BorderLayout.SOUTH);
+        shell.add(top, BorderLayout.NORTH);
+        shell.add(content, BorderLayout.CENTER);
         setContentPane(shell);
+    }
+
+    private JToggleButton navButton(String text, boolean selected) {
+        JToggleButton button = new JToggleButton(text, selected);
+        button.setFont(UiTheme.font(Font.BOLD, 11));
+        button.setForeground(selected ? UiTheme.TEXT : UiTheme.MUTED);
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, selected ? 2 : 0, 0,
+                        selected ? UiTheme.PINK : UiTheme.NAVY),
+                BorderFactory.createEmptyBorder(12, 14, 10, 14)));
+        button.addItemListener(e -> {
+            boolean active = button.isSelected();
+            button.setForeground(active ? UiTheme.TEXT : UiTheme.MUTED);
+            button.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, active ? 2 : 0, 0,
+                            active ? UiTheme.PINK : UiTheme.NAVY),
+                    BorderFactory.createEmptyBorder(12, 14, 10, 14)));
+        });
+        return button;
     }
 
     private JPanel header(CinemaGateway gateway, User user) {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBackground(UiTheme.NAVY);
-        bar.setPreferredSize(new Dimension(0, 64));
-        UiTheme.pad(bar, 0, 18, 0, 12);
+        bar.setPreferredSize(new Dimension(0, 72));
+        UiTheme.pad(bar, 0, 22, 0, 16);
 
-        JLabel brand = new JLabel("CineBook");
+        JLabel mark = new JLabel("C");
+        mark.setOpaque(true);
+        mark.setBackground(UiTheme.PINK);
+        mark.setForeground(Color.WHITE);
+        mark.setHorizontalAlignment(JLabel.CENTER);
+        mark.setFont(UiTheme.font(Font.BOLD, 17));
+        mark.setPreferredSize(new Dimension(34, 34));
+        mark.setBorder(BorderFactory.createLineBorder(UiTheme.PINK, 1, true));
+
+        JLabel brand = new JLabel("CINEBOOK");
         brand.setForeground(Color.WHITE);
-        brand.setFont(UiTheme.font(Font.BOLD, 22));
-        JLabel tag = new JLabel("  movies  ·  theatres  ·  seats");
-        tag.setForeground(new Color(0xC9CDD6));
-        tag.setFont(UiTheme.font(Font.PLAIN, 13));
+        brand.setFont(UiTheme.font(Font.BOLD, 18));
+        JLabel tag = new JLabel("  THE MOVIE NIGHT CLUB");
+        tag.setForeground(UiTheme.MUTED);
+        tag.setFont(UiTheme.font(Font.BOLD, 10));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 16));
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 18));
         left.setOpaque(false);
+        left.add(mark);
         left.add(brand);
         left.add(tag);
 
         JLabel who = new JLabel(user.name() + "  ·  " + user.role() + "   ");
-        who.setForeground(Color.WHITE);
+        who.setForeground(UiTheme.MUTED);
         who.setFont(UiTheme.font(Font.PLAIN, 13));
 
         JButton logout = UiTheme.primaryButton("Logout");

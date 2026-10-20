@@ -10,11 +10,11 @@ import java.sql.Connection;
 public class App {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            UiTheme.applyDefaults();
             try {
                 UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             } catch (Exception ignored) {
             }
+            UiTheme.applyDefaults();
 
             CinemaGateway gateway;
             try (Connection connection = DBconnection.getConnection()) {

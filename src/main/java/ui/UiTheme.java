@@ -24,22 +24,24 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-/** BookMyShow / District-inspired palette and shared Swing styling. */
+/** Cinematic dark palette and shared Swing styling. */
 public final class UiTheme {
 
     public static final Color PINK = new Color(0xF84464);
-    public static final Color PINK_DARK = new Color(0xD43754);
-    public static final Color NAVY = new Color(0x1F2533);
-    public static final Color NAVY_SOFT = new Color(0x2B3142);
-    public static final Color PAGE = new Color(0xF2F2F5);
-    public static final Color CARD = Color.WHITE;
-    public static final Color TEXT = new Color(0x222222);
-    public static final Color MUTED = new Color(0x6B6B6B);
-    public static final Color LINE = new Color(0xE6E6EA);
-    public static final Color SHOW_GREEN = new Color(0x49BA8E);
-    public static final Color SEAT_SELECTED = new Color(0x1EA83C);
-    public static final Color SEAT_SOLD = new Color(0xBBBBBB);
-    public static final Color SEAT_BORDER = new Color(0xC8C8C8);
+    public static final Color PINK_DARK = new Color(0xD93455);
+    public static final Color NAVY = new Color(0x11121A);
+    public static final Color NAVY_SOFT = new Color(0x252735);
+    public static final Color PAGE = new Color(0x151620);
+    public static final Color CARD = new Color(0x20222E);
+    public static final Color CARD_RAISED = new Color(0x292B39);
+    public static final Color TEXT = new Color(0xF4F2F6);
+    public static final Color MUTED = new Color(0xA3A5B3);
+    public static final Color LINE = new Color(0x353746);
+    public static final Color SHOW_GREEN = new Color(0x67D6AE);
+    public static final Color SEAT_SELECTED = new Color(0xF84464);
+    public static final Color SEAT_SOLD = new Color(0x383A47);
+    public static final Color SEAT_BORDER = new Color(0x5A5D6D);
+    public static final Color MINT = new Color(0x8BE7C4);
 
     private UiTheme() {}
 
@@ -49,12 +51,44 @@ public final class UiTheme {
 
     public static void applyDefaults() {
         UIManager.put("Label.font", font(Font.PLAIN, 13));
+        UIManager.put("Label.foreground", TEXT);
+        UIManager.put("Panel.background", PAGE);
         UIManager.put("Button.font", font(Font.BOLD, 13));
+        UIManager.put("Button.background", CARD_RAISED);
+        UIManager.put("Button.foreground", TEXT);
         UIManager.put("TextField.font", font(Font.PLAIN, 13));
+        UIManager.put("TextField.background", CARD_RAISED);
+        UIManager.put("TextField.foreground", TEXT);
         UIManager.put("PasswordField.font", font(Font.PLAIN, 13));
+        UIManager.put("PasswordField.background", CARD_RAISED);
+        UIManager.put("PasswordField.foreground", TEXT);
         UIManager.put("ComboBox.font", font(Font.PLAIN, 13));
+        UIManager.put("ComboBox.background", CARD_RAISED);
+        UIManager.put("ComboBox.foreground", TEXT);
+        UIManager.put("ComboBox.selectionBackground", PINK);
+        UIManager.put("ComboBox.selectionForeground", Color.WHITE);
         UIManager.put("Table.font", font(Font.PLAIN, 13));
+        UIManager.put("Table.background", CARD);
+        UIManager.put("Table.foreground", TEXT);
+        UIManager.put("Table.selectionBackground", new Color(0x45303A));
+        UIManager.put("Table.selectionForeground", TEXT);
+        UIManager.put("TableHeader.background", CARD_RAISED);
+        UIManager.put("TableHeader.foreground", MUTED);
         UIManager.put("TabbedPane.font", font(Font.BOLD, 13));
+        UIManager.put("TabbedPane.background", PAGE);
+        UIManager.put("TabbedPane.foreground", MUTED);
+        UIManager.put("TabbedPane.selected", CARD);
+        UIManager.put("ScrollPane.background", PAGE);
+        UIManager.put("Viewport.background", PAGE);
+        UIManager.put("ScrollBar.background", PAGE);
+        UIManager.put("ScrollBar.track", PAGE);
+        UIManager.put("ScrollBar.thumb", CARD_RAISED);
+        UIManager.put("ScrollBar.thumbDarkShadow", LINE);
+        UIManager.put("ScrollBar.width", 10);
+        UIManager.put("OptionPane.background", CARD);
+        UIManager.put("OptionPane.messageForeground", TEXT);
+        UIManager.put("OptionPane.buttonBackground", CARD_RAISED);
+        UIManager.put("OptionPane.buttonForeground", TEXT);
         UIManager.put("OptionPane.messageFont", font(Font.PLAIN, 13));
     }
 
@@ -67,7 +101,7 @@ public final class UiTheme {
     }
 
     public static JButton ghostButton(String text) {
-        JButton button = roundedButton(text, CARD, TEXT, LINE);
+        JButton button = roundedButton(text, CARD_RAISED, TEXT, LINE);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(LINE),
                 new EmptyBorder(8, 14, 8, 14)));
@@ -102,17 +136,20 @@ public final class UiTheme {
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 18, 10, 18));
+        button.setBorder(new EmptyBorder(11, 20, 11, 20));
+        button.getAccessibleContext().setAccessibleName(text);
         return button;
     }
 
     public static void styleField(JTextField field) {
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(LINE, 1, true),
-                new EmptyBorder(8, 10, 8, 10)));
-        field.setBackground(CARD);
+                new EmptyBorder(10, 12, 10, 12)));
+        field.setBackground(CARD_RAISED);
         field.setForeground(TEXT);
         field.setCaretColor(TEXT);
+        field.setSelectionColor(new Color(0x5A2E3B));
+        field.setSelectedTextColor(TEXT);
         field.setFont(font(Font.PLAIN, 13));
     }
 
@@ -122,12 +159,12 @@ public final class UiTheme {
         table.setIntercellSpacing(new Dimension(0, 1));
         table.setBackground(CARD);
         table.setForeground(TEXT);
-        table.setSelectionBackground(new Color(0xFDE8EC));
+        table.setSelectionBackground(new Color(0x45303A));
         table.setSelectionForeground(TEXT);
         table.setFillsViewportHeight(true);
         JTableHeader header = table.getTableHeader();
         header.setFont(font(Font.BOLD, 12));
-        header.setBackground(new Color(0xFAFAFA));
+        header.setBackground(CARD_RAISED);
         header.setForeground(MUTED);
         header.setReorderingAllowed(false);
     }
@@ -164,7 +201,7 @@ public final class UiTheme {
                 new Color(0x1F3D2B), new Color(0x3D2B1F), new Color(0x222244)
         };
         int h = seed == null ? 0 : seed.hashCode();
-        return palette[Math.abs(h) % palette.length];
+        return palette[Math.floorMod(h, palette.length)];
     }
 
     public static void flatten(AbstractButton button) {

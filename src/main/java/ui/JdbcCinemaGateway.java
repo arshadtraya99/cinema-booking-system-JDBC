@@ -40,6 +40,8 @@ public class JdbcCinemaGateway implements CinemaGateway {
     private final BookingDaoImpl bookings = new BookingDaoImpl();
 
     public JdbcCinemaGateway() {
+        ensureMoviePosterColumn();
+        ensureMovieTrailerColumn();
         ensureDefaultCategories();
     }
 
@@ -79,12 +81,21 @@ public class JdbcCinemaGateway implements CinemaGateway {
     }
 
     @Override
-    public void addMovie(String title, int durationMinutes, String genre) {
+    public void addMovie(String title, int durationMinutes, String genre, byte[] poster, String trailerUrl) {
         model.Movie movie = new model.Movie();
         movie.setTitle(title);
         movie.setDuration(durationMinutes);
         movie.setGenre(genre);
+        movie.setPoster(poster);
+        movie.setTrailerUrl(blankToNull(trailerUrl));
         if (!movies.addMovie(movie)) throw new RuntimeException("Could not add the movie.");
+    }
+
+    @Override
+    public void updateMovie(int movieId, String title, int durationMinutes, String genre,
+                           byte[] poster, String trailerUrl) {
+        model.Movie movie = new model.Movie(movieId, title, durationMinutes, genre, poster, blankToNull(trailerUrl));
+        if (!movies.updateMovie(movie)) throw new RuntimeException("Could not update the movie.");
     }
 
     @Override
@@ -111,6 +122,12 @@ public class JdbcCinemaGateway implements CinemaGateway {
     }
 
     @Override
+    public void updateTheatre(int theatreId, String name, String location, String city) {
+        model.Theatre theatre = new model.Theatre(theatreId, name, location, city);
+        if (!theatres.updateTheatre(theatre)) throw new RuntimeException("Could not update the theatre.");
+    }
+
+    @Override
     public void deleteTheatre(int theatreId) {
         if (!theatres.deleteTheatre(theatreId)) throw new RuntimeException("Could not delete the theatre.");
     }
@@ -129,6 +146,12 @@ public class JdbcCinemaGateway implements CinemaGateway {
         screen.setName(name);
         screen.setTotalSeats(totalSeats);
         if (!screens.addScreen(screen)) throw new RuntimeException("Could not add the screen.");
+    }
+
+    @Override
+    public void updateScreen(int screenId, int theatreId, String name, int totalSeats) {
+        model.Screen screen = new model.Screen(screenId, theatreId, name, totalSeats);
+        if (!screens.updateScreen(screen)) throw new RuntimeException("Could not update the screen.");
     }
 
     @Override
@@ -152,6 +175,12 @@ public class JdbcCinemaGateway implements CinemaGateway {
         category.setCategoryName(name);
         category.setPrice(price.doubleValue());
         if (!categories.addSeatCategory(category)) throw new RuntimeException("Could not add the price tier.");
+    }
+
+    @Override
+    public void updateCategory(int categoryId, String name, BigDecimal price) {
+        model.SeatCategory category = new model.SeatCategory(categoryId, name, price.doubleValue());
+        if (!categories.updateSeatCategory(category)) throw new RuntimeException("Could not update the price tier.");
     }
 
     @Override
@@ -179,6 +208,18 @@ public class JdbcCinemaGateway implements CinemaGateway {
             throw new RuntimeException("Could not schedule this show. The screen may already have a slot then.");
         }
         generateSeats(show.getId(), screenId);
+    }
+
+    @Override
+    public void updateShow(int showId, int movieId, LocalDate date, LocalTime time) {
+        model.Show show = shows.getShowById(showId);
+        if (show == null) throw new RuntimeException("Show not found.");
+        show.setMovieId(movieId);
+        show.setShowDate(date.toString());
+        show.setShowTime(time.toString());
+        if (!shows.updateShow(show)) {
+            throw new RuntimeException("Could not update this show. The screen may already have a slot then.");
+        }
     }
 
     @Override
@@ -338,7 +379,44 @@ public class JdbcCinemaGateway implements CinemaGateway {
 
     private Movie toMovie(model.Movie movie) {
         return new Movie(movie.getId(), movie.getTitle(), Math.round(movie.getDuration()),
-                movie.getGenre() == null ? "" : movie.getGenre());
+                movie.getGenre() == null ? "" : movie.getGenre(), movie.getPoster(),
+                movie.getTrailerUrl() == null ? "" : movie.getTrailerUrl());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void ensureMoviePosterColumn() {
+        String exists = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                + "WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = 'movies' "
+                + "AND LOWER(COLUMN_NAME) = 'poster'";
+        try (Connection connection = DBconnection.getConnection();
+             PreparedStatement check = connection.prepareStatement(exists);
+             ResultSet resultSet = check.executeQuery()) {
+            if (resultSet.next() && resultSet.getInt(1) > 0) return;
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE MOVIES ADD COLUMN POSTER MEDIUMBLOB");
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not add movie poster column: " + e.getMessage());
+        }
+    }
+
+    private void ensureMovieTrailerColumn() {
+        String exists = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                + "WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = 'movies' "
+                + "AND LOWER(COLUMN_NAME) = 'trailer_url'";
+        try (Connection connection = DBconnection.getConnection();
+             PreparedStatement check = connection.prepareStatement(exists);
+             ResultSet resultSet = check.executeQuery()) {
+            if (resultSet.next() && resultSet.getInt(1) > 0) return;
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE MOVIES ADD COLUMN TRAILER_URL VARCHAR(500)");
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not add movie trailer column: " + e.getMessage());
+        }
     }
 
     private Theatre toTheatre(model.Theatre theatre) {

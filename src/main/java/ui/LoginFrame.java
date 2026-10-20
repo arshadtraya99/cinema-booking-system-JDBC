@@ -39,6 +39,7 @@ public class LoginFrame extends JFrame {
         setResizable(false);
 
         JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(UiTheme.PAGE);
         root.add(brandPanel(), BorderLayout.WEST);
         root.add(formPanel(), BorderLayout.CENTER);
         setContentPane(root);
@@ -48,26 +49,34 @@ public class LoginFrame extends JFrame {
         JPanel panel = new JPanel(new GridBagLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(UiTheme.NAVY);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setPaint(new java.awt.GradientPaint(0, 0, new Color(0x241B2B),
+                        getWidth(), getHeight(), UiTheme.NAVY));
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(0xF84464));
-                g2.fillRect(0, 0, 6, getHeight());
+                g2.setColor(new Color(UiTheme.PINK.getRed(), UiTheme.PINK.getGreen(),
+                        UiTheme.PINK.getBlue(), 24));
+                g2.fillOval(getWidth() - 150, -90, 290, 290);
+                g2.setColor(new Color(UiTheme.MINT.getRed(), UiTheme.MINT.getGreen(),
+                        UiTheme.MINT.getBlue(), 12));
+                g2.fillOval(-130, getHeight() - 190, 300, 300);
+                g2.setColor(UiTheme.PINK);
+                g2.fillRect(0, 0, 5, getHeight());
                 g2.dispose();
             }
         };
         panel.setPreferredSize(new Dimension(420, 0));
 
-        JLabel kicker = new JLabel("NOW SHOWING");
+        JLabel kicker = new JLabel("✦  YOUR NEXT FAVORITE NIGHT");
         kicker.setForeground(UiTheme.PINK);
         kicker.setFont(UiTheme.font(Font.BOLD, 12));
 
-        JLabel title = new JLabel("<html>Book seats.<br>Skip the queue.</html>");
+        JLabel title = new JLabel("<html>Lights down.<br>Good times on.</html>");
         title.setForeground(Color.WHITE);
         title.setFont(UiTheme.font(Font.BOLD, 34));
 
-        JLabel copy = new JLabel("<html>A box-office desk inspired by BookMyShow and District — "
-                + "movies, theatres, and a live seat map in one place.</html>");
-        copy.setForeground(new Color(0xC9CDD6));
+        JLabel copy = new JLabel("<html>Find your film, pick the perfect seats, "
+                + "and make tonight feel like a premiere.</html>");
+        copy.setForeground(UiTheme.MUTED);
         copy.setFont(UiTheme.font(Font.PLAIN, 14));
         copy.setPreferredSize(new Dimension(320, 70));
 
@@ -85,7 +94,7 @@ public class LoginFrame extends JFrame {
 
     private JPanel formPanel() {
         JPanel wrap = new JPanel(new GridBagLayout());
-        wrap.setBackground(Color.WHITE);
+        wrap.setBackground(UiTheme.PAGE);
 
         formCards.setOpaque(false);
         formCards.add(loginCard(), "login");
@@ -106,7 +115,7 @@ public class LoginFrame extends JFrame {
 
         JLabel message = errorLabel();
         JButton login = UiTheme.primaryButton("Sign in");
-        login.setPreferredSize(new Dimension(320, 42));
+        login.setPreferredSize(new Dimension(320, 48));
 
         Runnable attempt = () -> {
             try {
@@ -142,11 +151,12 @@ public class LoginFrame extends JFrame {
         UiTheme.styleField(name);
         UiTheme.styleField(username);
         UiTheme.styleField(password);
-        role.setBackground(Color.WHITE);
+        role.setBackground(UiTheme.CARD_RAISED);
+        role.setForeground(UiTheme.TEXT);
 
         JLabel message = errorLabel();
         JButton create = UiTheme.primaryButton("Create account");
-        create.setPreferredSize(new Dimension(320, 42));
+        create.setPreferredSize(new Dimension(320, 48));
         create.addActionListener(e -> {
             try {
                 User user = gateway.register(name.getText().trim(), username.getText().trim(),
@@ -172,11 +182,11 @@ public class LoginFrame extends JFrame {
     private JPanel stack(String title, String subtitle, java.awt.Component... parts) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(360, 520));
+        panel.setPreferredSize(new Dimension(360, 560));
         GridBagConstraints gc = new GridBagConstraints();
         gc.gridx = 0;
         gc.fill = GridBagConstraints.HORIZONTAL;
-        gc.insets = new Insets(4, 0, 4, 0);
+        gc.insets = new Insets(8, 0, 8, 0);
         gc.anchor = GridBagConstraints.WEST;
 
         JLabel heading = new JLabel(title);
@@ -190,18 +200,18 @@ public class LoginFrame extends JFrame {
         gc.gridy = y++;
         panel.add(heading, gc);
         gc.gridy = y++;
-        gc.insets = new Insets(0, 0, 16, 0);
+        gc.insets = new Insets(0, 0, 20, 0);
         panel.add(sub, gc);
         for (java.awt.Component part : parts) {
             gc.gridy = y++;
-            gc.insets = new Insets(6, 0, 6, 0);
+            gc.insets = new Insets(9, 0, 9, 0);
             panel.add(part, gc);
         }
         return panel;
     }
 
     private static JPanel fieldBlock(String label, java.awt.Component field) {
-        JPanel panel = new JPanel(new BorderLayout(0, 4));
+        JPanel panel = new JPanel(new BorderLayout(0, 7));
         panel.setOpaque(false);
         JLabel caption = new JLabel(label);
         caption.setForeground(UiTheme.MUTED);
