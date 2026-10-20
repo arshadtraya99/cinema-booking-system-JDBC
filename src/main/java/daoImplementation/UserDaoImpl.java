@@ -15,8 +15,9 @@ import java.util.List;
 public class UserDaoImpl implements UserDao {
 
     @Override
-    public User login(String username, String password) {
-        String sql = "SELECT * FROM USERS WHERE USERNAME = ? AND PASSWORD = ?";
+    public User login(String username, String password) throws SQLException {
+        String sql = "SELECT USER_ID, NAME, USERNAME, PASSWORD, ROLE "
+                + "FROM USERS WHERE USERNAME = ? AND PASSWORD = ?";
 
         try (Connection connection = DBconnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -26,14 +27,11 @@ public class UserDaoImpl implements UserDao {
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next() ? mapUser(resultSet) : null;
             }
-        } catch (SQLException e) {
-            System.err.println("Unable to authenticate user: " + e.getMessage());
-            return null;
         }
     }
 
     @Override
-    public boolean addUser(User user) {
+    public boolean addUser(User user) throws SQLException {
 
         String sql = "INSERT INTO USERS (NAME, USERNAME, PASSWORD, ROLE) VALUES (?, ?, ?, ?)";
 
@@ -51,10 +49,6 @@ public class UserDaoImpl implements UserDao {
                 if (keys.next()) user.setId(keys.getInt(1));
             }
             return true;
-
-        } catch (SQLException e) {
-            System.err.println("Unable to add user: " + e.getMessage());
-            return false;
         }
     }
 
