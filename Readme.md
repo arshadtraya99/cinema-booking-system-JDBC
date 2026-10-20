@@ -18,6 +18,7 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 |---|---|
 | **Multi-Theatre Support** | Manage multiple theatre locations, each with their own screens |
 | **Movie Scheduling** | Set up showtimes and assign movies to specific screens |
+| **Account Access** | Register new accounts in MySQL and authenticate existing users against the database |
 | **Seat Management** | Grid-based graphical view of seat availability (Booked vs. Available) |
 | **Dynamic Pricing** | Configurable rates across Gold, Silver, and Platinum seating tiers |
 | **Booking Receipts** | Auto-generated summary of movie, seat numbers, and total cost |
@@ -161,6 +162,9 @@ SmartCinemaBookingSystem/
    `CINEMA_DB_PASSWORD` environment variables. The defaults are
    `jdbc:mysql://localhost:3306/Cinema_booking_System`, `root`, and an empty password.
 4. Run `mvn test` to compile and test the project, or `mvn package` to build it.
+5. Launch the application. Choose **Create a new account** to register, or sign in with an existing
+   username and password. New accounts are saved in the `USERS` table; sign-in credentials are
+   checked against that table.
 
 The JDBC DAOs use the model classes in `src/main/java/model` and expect the schema
 created by the SQL script above.
