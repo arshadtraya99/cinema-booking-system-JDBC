@@ -24,7 +24,7 @@ public class HistoryPanel extends JPanel {
     public HistoryPanel(CinemaGateway gateway) {
         this.gateway = gateway;
         setLayout(new BorderLayout(0, 18));
-        setBackground(UiTheme.PAGE);
+        setOpaque(false);
         UiTheme.pad(this, 22, 26, 22, 26);
 
         JLabel title = UiTheme.heading("Booking history", 26);
@@ -47,11 +47,9 @@ public class HistoryPanel extends JPanel {
         JButton reload = UiTheme.darkButton("Refresh");
         reload.addActionListener(e -> refresh());
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(true);
-        bottom.setBackground(UiTheme.CARD);
+        JPanel bottom = UiTheme.glassPanel(new BorderLayout());
         bottom.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(UiTheme.LINE),
+                javax.swing.BorderFactory.createLineBorder(new Color(255, 255, 255, 28), 1, true),
                 javax.swing.BorderFactory.createEmptyBorder(16, 20, 16, 20)));
         bottom.add(revenue, BorderLayout.WEST);
         bottom.add(reload, BorderLayout.EAST);

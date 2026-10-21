@@ -7,6 +7,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -38,7 +39,7 @@ public class SeatGridPanel extends JPanel {
     public SeatGridPanel(Consumer<List<Seat>> onChange) {
         this.onChange = onChange;
         setLayout(new BorderLayout(0, 12));
-        setBackground(UiTheme.PAGE);
+        setOpaque(false);
 
         JPanel screen = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -69,7 +70,8 @@ public class SeatGridPanel extends JPanel {
         grid.setOpaque(false);
         JScrollPane scroll = new JScrollPane(wrap(grid));
         scroll.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        scroll.getViewport().setBackground(UiTheme.PAGE);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
 
         JPanel south = new JPanel(new BorderLayout(0, 4));
         south.setOpaque(false);
@@ -82,7 +84,7 @@ public class SeatGridPanel extends JPanel {
 
     private static JPanel wrap(JPanel inner) {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(UiTheme.PAGE);
+        panel.setOpaque(false);
         panel.add(inner);
         return panel;
     }
@@ -161,6 +163,22 @@ public class SeatGridPanel extends JPanel {
 
     private static class SeatButton extends JToggleButton {
         final Seat seat;
+        private float selectedProgress;
+        private float hoverProgress;
+        private boolean hovered;
+        private final Timer transition = new Timer(16, event -> {
+            float selectionTarget = isSelected() ? 1f : 0f;
+            float hoverTarget = hovered && isEnabled() ? 1f : 0f;
+            selectedProgress += (selectionTarget - selectedProgress) * 0.30f;
+            hoverProgress += (hoverTarget - hoverProgress) * 0.30f;
+            if (Math.abs(selectionTarget - selectedProgress) < 0.025f
+                    && Math.abs(hoverTarget - hoverProgress) < 0.025f) {
+                selectedProgress = selectionTarget;
+                hoverProgress = hoverTarget;
+                ((Timer) event.getSource()).stop();
+            }
+            repaint();
+        });
 
         SeatButton(Seat seat) {
             super(String.valueOf(seat.number()));
@@ -178,25 +196,61 @@ public class SeatGridPanel extends JPanel {
             getAccessibleContext().setAccessibleDescription(seat.category() + ", Rs " + seat.price()
                     + (seat.booked() ? ", sold" : ", available"));
             if (!seat.booked()) setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            transition.setCoalesce(true);
+            getModel().addChangeListener(event -> {
+                if (!transition.isRunning()) transition.start();
+                repaint();
+            });
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseEntered(java.awt.event.MouseEvent event) {
+                    hovered = true;
+                    if (!transition.isRunning()) transition.start();
+                }
+                @Override public void mouseExited(java.awt.event.MouseEvent event) {
+                    hovered = false;
+                    if (!transition.isRunning()) transition.start();
+                }
+            });
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            Color fill = seat.booked() ? UiTheme.SEAT_SOLD : isSelected() ? UiTheme.SEAT_SELECTED : UiTheme.CARD_RAISED;
-            Color border = seat.booked() ? UiTheme.SEAT_SOLD : isSelected() ? UiTheme.SEAT_SELECTED : UiTheme.SEAT_BORDER;
+            Color available = UiTheme.CARD_RAISED;
+            Color fill = seat.booked() ? UiTheme.SEAT_SOLD : blend(available, UiTheme.SEAT_SELECTED, selectedProgress);
+            Color border = seat.booked() ? UiTheme.SEAT_SOLD : blend(UiTheme.SEAT_BORDER, UiTheme.MINT, selectedProgress);
+            if (hoverProgress > 0.03f && !seat.booked()) {
+                g2.setColor(new Color(UiTheme.MINT.getRed(), UiTheme.MINT.getGreen(), UiTheme.MINT.getBlue(),
+                        Math.round(50 * hoverProgress)));
+                g2.setStroke(new java.awt.BasicStroke(5f, java.awt.BasicStroke.CAP_ROUND,
+                        java.awt.BasicStroke.JOIN_ROUND));
+                g2.drawRoundRect(3, 3, getWidth() - 7, getHeight() - 7, 9, 9);
+            }
             g2.setColor(fill);
-            g2.fillRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 6, 6);
+            g2.fillRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 8, 8);
             g2.setColor(border);
-            g2.drawRoundRect(1, 1, getWidth() - 4, getHeight() - 4, 6, 6);
-            g2.setColor(isSelected() || seat.booked() ? Color.WHITE : UiTheme.TEXT);
+            g2.setStroke(new java.awt.BasicStroke(1f + selectedProgress * 0.7f));
+            g2.drawRoundRect(1, 1, getWidth() - 4, getHeight() - 4, 8, 8);
+            if (!seat.booked()) {
+                g2.setColor(new Color(255, 255, 255, 15 + Math.round(18 * hoverProgress)));
+                g2.drawRoundRect(3, 3, getWidth() - 8, Math.max(1, getHeight() / 2), 6, 6);
+            }
+            g2.setColor(seat.booked() || selectedProgress > 0.5f ? Color.WHITE : UiTheme.TEXT);
             g2.setFont(getFont());
             FontMetrics fm = g2.getFontMetrics();
             String text = getText();
             g2.drawString(text, (getWidth() - fm.stringWidth(text)) / 2,
                     (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
             g2.dispose();
+        }
+
+        private static Color blend(Color from, Color to, float amount) {
+            float t = Math.max(0f, Math.min(1f, amount));
+            float r = 1f - t;
+            return new Color(Math.round(from.getRed() * r + to.getRed() * t),
+                    Math.round(from.getGreen() * r + to.getGreen() * t),
+                    Math.round(from.getBlue() * r + to.getBlue() * t));
         }
     }
 }

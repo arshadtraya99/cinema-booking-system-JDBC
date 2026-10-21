@@ -85,12 +85,31 @@ public class ShowDaoImpl implements ShowDao {
 
     @Override
     public boolean deleteShow(int showId) {
-        String sql = "DELETE FROM SHOWS WHERE SHOW_ID = ?";
+        String deleteBookingsSql = "DELETE FROM BOOKINGS WHERE SHOW_ID = ?";
+        String deleteShowSql = "DELETE FROM SHOWS WHERE SHOW_ID = ?";
 
-        try (Connection connection = DBconnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, showId);
-            return statement.executeUpdate() > 0;
+        try (Connection connection = DBconnection.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement statement = connection.prepareStatement(deleteBookingsSql)) {
+                    statement.setInt(1, showId);
+                    statement.executeUpdate();
+                }
+                int deletedShows;
+                try (PreparedStatement statement = connection.prepareStatement(deleteShowSql)) {
+                    statement.setInt(1, showId);
+                    deletedShows = statement.executeUpdate();
+                }
+                if (deletedShows == 0) {
+                    connection.rollback();
+                    return false;
+                }
+                connection.commit();
+                return true;
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
             System.err.println("Unable to delete show: " + e.getMessage());
             return false;

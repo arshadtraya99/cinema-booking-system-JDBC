@@ -74,11 +74,13 @@ public interface CinemaGateway {
     List<SeatCategory> categories();
     void addCategory(String name, BigDecimal price);
     void updateCategory(int categoryId, String name, BigDecimal price);
+    void deleteCategory(int categoryId);
 
     List<Show> shows();
     List<Show> showsForMovie(int movieId);
     void addShow(int movieId, int screenId, LocalDate date, LocalTime time);
     void updateShow(int showId, int movieId, LocalDate date, LocalTime time);
+    void deleteShow(int showId);
 
     List<Seat> seats(int showId);
 

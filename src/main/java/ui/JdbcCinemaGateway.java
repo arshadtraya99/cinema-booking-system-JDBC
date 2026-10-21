@@ -184,6 +184,13 @@ public class JdbcCinemaGateway implements CinemaGateway {
     }
 
     @Override
+    public void deleteCategory(int categoryId) {
+        if (!categories.deleteSeatCategory(categoryId)) {
+            throw new RuntimeException("Could not delete this price tier. It may be in use by seats.");
+        }
+    }
+
+    @Override
     public List<Show> shows() {
         List<Show> out = new ArrayList<>();
         for (model.Show show : shows.getAllShows()) out.add(toShow(show));
@@ -219,6 +226,16 @@ public class JdbcCinemaGateway implements CinemaGateway {
         show.setShowTime(time.toString());
         if (!shows.updateShow(show)) {
             throw new RuntimeException("Could not update this show. The screen may already have a slot then.");
+        }
+    }
+
+    @Override
+    public void deleteShow(int showId) {
+        if (!bookings.getBookingsByShowId(showId).isEmpty()) {
+            throw new RuntimeException("Could not delete this showtime. Cancel its bookings first.");
+        }
+        if (!shows.deleteShow(showId)) {
+            throw new RuntimeException("Could not delete this showtime. It may already be unavailable.");
         }
     }
 

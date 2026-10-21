@@ -24,7 +24,7 @@ public class App {
                         "Could not reach MySQL.\n\n"
                                 + ex.getMessage()
                                 + "\n\nContinue with sample data so you can still explore the UI?",
-                        "CineBook",
+                        "Book Your Show",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.WARNING_MESSAGE);
                 if (choice != JOptionPane.YES_OPTION) {

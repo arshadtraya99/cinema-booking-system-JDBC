@@ -27,83 +27,154 @@ import java.awt.RenderingHints;
 public class LoginFrame extends JFrame {
 
     private final CinemaGateway gateway;
-    private final CardLayout cards = new CardLayout();
-    private final JPanel formCards = new JPanel(cards);
+    private final AnimatedCardPanel formCards = new AnimatedCardPanel(new CardLayout());
+    private JButton loginActionButton;
+    private JButton registerActionButton;
 
     public LoginFrame(CinemaGateway gateway) {
-        super("CineBook");
+        super("Book Your Show");
         this.gateway = gateway;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(980, 620);
+        setSize(1120, 740);
+        setMinimumSize(new Dimension(980, 660));
         setLocationRelativeTo(null);
-        setResizable(false);
+        setResizable(true);
 
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(UiTheme.PAGE);
+        JPanel root = UiTheme.gradientPanel(new BorderLayout(14, 0));
+        UiTheme.pad(root, 14, 14, 14, 14);
         root.add(brandPanel(), BorderLayout.WEST);
         root.add(formPanel(), BorderLayout.CENTER);
         setContentPane(root);
     }
 
     private JPanel brandPanel() {
-        JPanel panel = new JPanel(new GridBagLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setPaint(new java.awt.GradientPaint(0, 0, new Color(0x241B2B),
-                        getWidth(), getHeight(), UiTheme.NAVY));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(UiTheme.PINK.getRed(), UiTheme.PINK.getGreen(),
-                        UiTheme.PINK.getBlue(), 24));
-                g2.fillOval(getWidth() - 150, -90, 290, 290);
-                g2.setColor(new Color(UiTheme.MINT.getRed(), UiTheme.MINT.getGreen(),
-                        UiTheme.MINT.getBlue(), 12));
-                g2.fillOval(-130, getHeight() - 190, 300, 300);
-                g2.setColor(UiTheme.PINK);
-                g2.fillRect(0, 0, 5, getHeight());
-                g2.dispose();
-            }
-        };
-        panel.setPreferredSize(new Dimension(420, 0));
+        JPanel panel = UiTheme.gradientPanel(new GridBagLayout());
+        panel.setPreferredSize(new Dimension(440, 0));
 
-        JLabel kicker = new JLabel("✦  YOUR NEXT FAVORITE NIGHT");
-        kicker.setForeground(UiTheme.PINK);
-        kicker.setFont(UiTheme.font(Font.BOLD, 12));
+        JPanel identity = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 12, 0));
+        identity.setOpaque(false);
+        identity.add(new BrandLogo(44));
+        JPanel wordmark = new JPanel();
+        wordmark.setOpaque(false);
+        wordmark.setLayout(new javax.swing.BoxLayout(wordmark, javax.swing.BoxLayout.Y_AXIS));
+        JLabel brand = new JLabel("BOOK YOUR SHOW");
+        brand.setForeground(Color.WHITE);
+        brand.setFont(UiTheme.font(Font.BOLD, 17));
+        JLabel subBrand = new JLabel("THE CINEMA DESK");
+        subBrand.setForeground(UiTheme.MUTED);
+        subBrand.setFont(UiTheme.font(Font.BOLD, 9));
+        wordmark.add(brand);
+        wordmark.add(javax.swing.Box.createVerticalStrut(4));
+        wordmark.add(subBrand);
+        identity.add(wordmark);
 
-        JLabel title = new JLabel("<html>Lights down.<br>Good times on.</html>");
+        JLabel kicker = new JLabel("A BETTER WAY TO BOOK");
+        kicker.setForeground(UiTheme.MINT);
+        kicker.setFont(UiTheme.font(Font.BOLD, 11));
+        kicker.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(UiTheme.MINT.getRed(), UiTheme.MINT.getGreen(),
+                        UiTheme.MINT.getBlue(), 90), 1, true),
+                BorderFactory.createEmptyBorder(8, 11, 8, 11)));
+
+        JLabel title = new JLabel("<html>Lights down.<br>World on.</html>");
         title.setForeground(Color.WHITE);
-        title.setFont(UiTheme.font(Font.BOLD, 34));
+        title.setFont(UiTheme.font(Font.BOLD, 38));
 
-        JLabel copy = new JLabel("<html>Find your film, pick the perfect seats, "
+        JLabel copy = new JLabel("<html>Discover your next favourite, pick the perfect seat, "
                 + "and make tonight feel like a premiere.</html>");
         copy.setForeground(UiTheme.MUTED);
         copy.setFont(UiTheme.font(Font.PLAIN, 14));
-        copy.setPreferredSize(new Dimension(320, 70));
+        copy.setPreferredSize(new Dimension(326, 62));
+
+        JPanel features = new JPanel();
+        features.setOpaque(false);
+        features.setLayout(new javax.swing.BoxLayout(features, javax.swing.BoxLayout.Y_AXIS));
+        features.add(featureRow("◈", "Live seat map", "Choose seats visually, without the guesswork."));
+        features.add(javax.swing.Box.createVerticalStrut(15));
+        features.add(featureRow("✦", "One smooth workflow", "Movie discovery, booking, and history in one place."));
+        features.add(javax.swing.Box.createVerticalStrut(15));
+        features.add(featureRow("✓", "Database-backed", "Bookings are saved through JDBC and MySQL."));
 
         GridBagConstraints gc = new GridBagConstraints();
         gc.gridx = 0;
         gc.anchor = GridBagConstraints.WEST;
-        gc.insets = new Insets(8, 40, 8, 40);
-        panel.add(kicker, gc);
+        gc.insets = new Insets(8, 32, 8, 32);
+        panel.add(identity, gc);
         gc.gridy = 1;
-        panel.add(title, gc);
+        gc.insets = new Insets(52, 32, 12, 32);
+        panel.add(kicker, gc);
         gc.gridy = 2;
+        gc.insets = new Insets(4, 32, 8, 32);
+        panel.add(title, gc);
+        gc.gridy = 3;
+        gc.insets = new Insets(4, 32, 24, 32);
         panel.add(copy, gc);
+        gc.gridy = 4;
+        gc.insets = new Insets(4, 32, 8, 32);
+        panel.add(features, gc);
+        gc.gridy = 5;
+        gc.weighty = 1;
+        gc.anchor = GridBagConstraints.SOUTHWEST;
+        gc.insets = new Insets(22, 32, 14, 32);
+        JLabel footer = UiTheme.muted("JAVA SWING  ·  JDBC  ·  MYSQL");
+        footer.setFont(UiTheme.font(Font.BOLD, 9));
+        panel.add(footer, gc);
         return panel;
     }
 
+    private JPanel featureRow(String symbol, String title, String copy) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setOpaque(false);
+        JLabel icon = new JLabel(symbol, SwingConstants.CENTER);
+        icon.setPreferredSize(new Dimension(34, 34));
+        icon.setForeground(Color.WHITE);
+        icon.setFont(UiTheme.font(Font.BOLD, 16));
+        icon.setOpaque(true);
+        icon.setBackground(new Color(100, 130, 215, 35));
+        icon.setBorder(BorderFactory.createLineBorder(new Color(180, 205, 255, 45), 1, true));
+        JPanel words = new JPanel();
+        words.setOpaque(false);
+        words.setLayout(new javax.swing.BoxLayout(words, javax.swing.BoxLayout.Y_AXIS));
+        JLabel titleLabel = UiTheme.heading(title, 12);
+        JLabel copyLabel = UiTheme.muted(copy);
+        copyLabel.setFont(UiTheme.font(Font.PLAIN, 11));
+        words.add(titleLabel);
+        words.add(javax.swing.Box.createVerticalStrut(4));
+        words.add(copyLabel);
+        row.add(icon, BorderLayout.WEST);
+        row.add(words, BorderLayout.CENTER);
+        row.setMaximumSize(new Dimension(350, 48));
+        return row;
+    }
+
     private JPanel formPanel() {
-        JPanel wrap = new JPanel(new GridBagLayout());
-        wrap.setBackground(UiTheme.PAGE);
+        JPanel wrap = UiTheme.gradientPanel(new GridBagLayout());
 
         formCards.setOpaque(false);
         formCards.add(loginCard(), "login");
         formCards.add(registerCard(), "register");
 
-        GridBagConstraints gc = new GridBagConstraints();
-        gc.gridx = 0;
-        gc.fill = GridBagConstraints.HORIZONTAL;
-        wrap.add(formCards, gc);
+        JPanel glass = UiTheme.glassPanel(new GridBagLayout());
+        glass.setPreferredSize(new Dimension(444, 634));
+        glass.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 235, 255, 52), 1, true),
+                BorderFactory.createEmptyBorder(20, 28, 20, 28)));
+        GridBagConstraints inner = new GridBagConstraints();
+        inner.gridx = 0;
+        inner.gridy = 0;
+        inner.weightx = 1;
+        inner.fill = GridBagConstraints.HORIZONTAL;
+        inner.anchor = GridBagConstraints.CENTER;
+        glass.add(formCards, inner);
+
+        GridBagConstraints outer = new GridBagConstraints();
+        outer.gridx = 0;
+        outer.gridy = 0;
+        outer.weightx = 1;
+        outer.weighty = 1;
+        outer.insets = new Insets(8, 8, 8, 8);
+        outer.anchor = GridBagConstraints.CENTER;
+        wrap.add(glass, outer);
         return wrap;
     }
 
@@ -115,6 +186,7 @@ public class LoginFrame extends JFrame {
 
         JLabel message = errorLabel();
         JButton login = UiTheme.primaryButton("Sign in");
+        loginActionButton = login;
         login.setPreferredSize(new Dimension(320, 48));
 
         Runnable attempt = () -> {
@@ -135,7 +207,10 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(login);
 
         JButton switcher = link("New here? Create an account");
-        switcher.addActionListener(e -> cards.show(formCards, "register"));
+        switcher.addActionListener(e -> {
+            formCards.showCard("register");
+            if (registerActionButton != null) getRootPane().setDefaultButton(registerActionButton);
+        });
 
         return stack("Welcome back", "Sign in to book tickets or manage shows.",
                 fieldBlock("Username", username),
@@ -156,6 +231,7 @@ public class LoginFrame extends JFrame {
 
         JLabel message = errorLabel();
         JButton create = UiTheme.primaryButton("Create account");
+        registerActionButton = create;
         create.setPreferredSize(new Dimension(320, 48));
         create.addActionListener(e -> {
             try {
@@ -169,7 +245,10 @@ public class LoginFrame extends JFrame {
         });
 
         JButton switcher = link("Already have an account? Sign in");
-        switcher.addActionListener(e -> cards.show(formCards, "login"));
+        switcher.addActionListener(e -> {
+            formCards.showCard("login");
+            if (loginActionButton != null) getRootPane().setDefaultButton(loginActionButton);
+        });
 
         return stack("Create account", "Clerks book tickets. Admins manage movies and theatres.",
                 fieldBlock("Full name", name),

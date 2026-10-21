@@ -10,7 +10,7 @@
     <artifactId>cinema-booking-system</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <name>Smart Cinema Booking System</name>
+    <name>Book Your Show</name>
     <description>A Java-based cinema ticket booking application</description>
 
     <properties>

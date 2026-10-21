@@ -43,7 +43,8 @@ public class AdminPanel extends JTabbedPane {
 
     public AdminPanel(CinemaGateway gateway) {
         this.gateway = gateway;
-        setBackground(UiTheme.PAGE);
+        setOpaque(false);
+        UiTheme.styleTabbedPane(this);
         addTab("Movies", buildMovies());
         addTab("Showtimes", buildShows());
         addTab("Theatres", buildTheatres());
@@ -133,11 +134,12 @@ public class AdminPanel extends JTabbedPane {
         del.addActionListener(e -> {
             int id = selectedId(table);
             if (id < 0) { error("Select a movie first."); return; }
-            int ok = JOptionPane.showConfirmDialog(this,
-                    "Delete this movie and all of its shows?", "Confirm", JOptionPane.OK_CANCEL_OPTION);
-            if (ok != JOptionPane.OK_OPTION) return;
+            if (!confirmDelete("Delete this movie and all of its shows? Booked shows cannot be deleted.")) return;
             try {
                 gateway.deleteMovie(id);
+                if (editingId[0] == id) {
+                    clearMovieEditor(editingId, title, duration, genre, trailer, poster, posterName, add, cancel);
+                }
                 refresh();
             } catch (Exception ex) {
                 error(ex.getMessage());
@@ -158,6 +160,7 @@ public class AdminPanel extends JTabbedPane {
         JButton add = UiTheme.primaryButton("Schedule show");
         JButton edit = UiTheme.ghostButton("Edit selected");
         JButton cancel = UiTheme.ghostButton("Cancel");
+        JButton del = UiTheme.ghostButton("Delete selected");
         int[] editingId = {0};
         add.addActionListener(e -> {
             Movie movie = (Movie) showMovieBox.getSelectedItem();
@@ -206,9 +209,28 @@ public class AdminPanel extends JTabbedPane {
             add.setText("Schedule show");
             cancel.setEnabled(false);
         });
+        del.addActionListener(e -> {
+            int id = selectedId(table);
+            if (id < 0) { error("Select a showtime first."); return; }
+            if (!confirmDelete("Delete this showtime and its seats? Booked shows cannot be deleted.")) return;
+            try {
+                gateway.deleteShow(id);
+                if (editingId[0] == id) {
+                    editingId[0] = 0;
+                    date.setText(LocalDate.now().toString());
+                    time.setText("18:30");
+                    screenBox.setEnabled(true);
+                    add.setText("Schedule show");
+                    cancel.setEnabled(false);
+                }
+                refresh();
+            } catch (Exception ex) {
+                error(ex.getMessage());
+            }
+        });
         cancel.setEnabled(false);
         return page("Showtimes", "Edit movie, date, or time. The screen stays fixed to preserve existing seat assignments.", table,
-                row("Movie", showMovieBox, "Screen", screenBox, "Date", date, "Time", time, add, edit, cancel));
+                row("Movie", showMovieBox, "Screen", screenBox, "Date", date, "Time", time, add, edit, cancel, del));
     }
 
     private JPanel buildTheatres() {
@@ -267,8 +289,17 @@ public class AdminPanel extends JTabbedPane {
         del.addActionListener(e -> {
             int id = selectedId(table);
             if (id < 0) { error("Select a theatre first."); return; }
+            if (!confirmDelete("Delete this theatre, its screens, and their shows? Booked shows cannot be deleted.")) return;
             try {
                 gateway.deleteTheatre(id);
+                if (editingId[0] == id) {
+                    editingId[0] = 0;
+                    name.setText("");
+                    location.setText("");
+                    city.setText("");
+                    add.setText("Add theatre");
+                    cancel.setEnabled(false);
+                }
                 refresh();
             } catch (Exception ex) {
                 error(ex.getMessage());
@@ -335,8 +366,16 @@ public class AdminPanel extends JTabbedPane {
         del.addActionListener(e -> {
             int id = selectedId(table);
             if (id < 0) { error("Select a screen first."); return; }
+            if (!confirmDelete("Delete this screen and its shows? Booked shows cannot be deleted.")) return;
             try {
                 gateway.deleteScreen(id);
+                if (editingId[0] == id) {
+                    editingId[0] = 0;
+                    name.setText("");
+                    seats.setText("80");
+                    add.setText("Add screen");
+                    cancel.setEnabled(false);
+                }
                 refresh();
             } catch (Exception ex) {
                 error(ex.getMessage());
@@ -353,6 +392,7 @@ public class AdminPanel extends JTabbedPane {
         JButton add = UiTheme.primaryButton("Add category");
         JButton edit = UiTheme.ghostButton("Edit selected");
         JButton cancel = UiTheme.ghostButton("Cancel");
+        JButton del = UiTheme.ghostButton("Delete selected");
         int[] editingId = {0};
         cancel.setEnabled(false);
         add.addActionListener(e -> {
@@ -393,8 +433,26 @@ public class AdminPanel extends JTabbedPane {
             add.setText("Add category");
             cancel.setEnabled(false);
         });
+        del.addActionListener(e -> {
+            int id = selectedId(table);
+            if (id < 0) { error("Select a pricing category first."); return; }
+            if (!confirmDelete("Delete this pricing category? Categories used by seats cannot be deleted.")) return;
+            try {
+                gateway.deleteCategory(id);
+                if (editingId[0] == id) {
+                    editingId[0] = 0;
+                    name.setText("");
+                    price.setText("");
+                    add.setText("Add category");
+                    cancel.setEnabled(false);
+                }
+                refresh();
+            } catch (Exception ex) {
+                error(ex.getMessage());
+            }
+        });
         return page("Seat pricing", "Platinum, Gold, and Silver tiers used on the seat map.", table,
-                row("Category", name, "Price", price, add, edit, cancel));
+                row("Category", name, "Price", price, add, edit, cancel, del));
     }
 
     public void refresh() {
@@ -434,8 +492,7 @@ public class AdminPanel extends JTabbedPane {
     }
 
     private JPanel page(String title, String subtitle, JTable table, JPanel form) {
-        JPanel page = new JPanel(new BorderLayout(0, 16));
-        page.setBackground(UiTheme.PAGE);
+        JPanel page = UiTheme.gradientPanel(new BorderLayout(0, 16));
         UiTheme.pad(page, 24, 26, 22, 26);
         JLabel heading = UiTheme.heading(title, 20);
         JLabel sub = UiTheme.muted(subtitle);
@@ -450,12 +507,13 @@ public class AdminPanel extends JTabbedPane {
         top.add(titles, BorderLayout.WEST);
         page.add(top, BorderLayout.NORTH);
         page.add(UiTheme.scroll(table), BorderLayout.CENTER);
-        form.setOpaque(true);
-        form.setBackground(UiTheme.CARD);
-        form.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(UiTheme.LINE),
+        form.setOpaque(false);
+        JPanel glassForm = UiTheme.glassPanel(new BorderLayout());
+        glassForm.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255, 28), 1, true),
                 javax.swing.BorderFactory.createEmptyBorder(14, 16, 14, 16)));
-        page.add(form, BorderLayout.SOUTH);
+        glassForm.add(form, BorderLayout.CENTER);
+        page.add(glassForm, BorderLayout.SOUTH);
         return page;
     }
 
@@ -535,6 +593,11 @@ public class AdminPanel extends JTabbedPane {
     private void error(String message) {
         JOptionPane.showMessageDialog(this,
                 message == null || message.isBlank() ? "An unexpected error occurred." : message,
-                "Could not save", JOptionPane.ERROR_MESSAGE);
+                "Could not complete action", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private boolean confirmDelete(String message) {
+        return JOptionPane.showConfirmDialog(this, message, "Confirm deletion",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
     }
 }

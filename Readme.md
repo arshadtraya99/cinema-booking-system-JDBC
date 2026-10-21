@@ -1,4 +1,4 @@
-# 🎬 Smart Cinema Booking System
+# 🎬 Book Your Show
 
 A desktop application built with **Java, Java Swing, MySQL, and JDBC** that manages movie screenings, theater seating, and ticket reservations — designed to automate the box office workflow, prevent double-booking, and give cinema management a clear view of theater occupancy across multiple locations.
 
@@ -6,7 +6,7 @@ A desktop application built with **Java, Java Swing, MySQL, and JDBC** that mana
 
 ## 📌 Project Overview
 
-The Smart Cinema Booking System provides an interface for staff to book tickets for walk-in customers and manage show timings. It replaces manual seat tracking with a transaction-safe, database-driven booking engine and a visual seat map, and supports multiple theatres and locations.
+Book Your Show provides an interface for staff to book tickets for walk-in customers and manage show timings. It replaces manual seat tracking with a transaction-safe, database-driven booking engine and a visual seat map, and supports multiple theatres and locations.
 
 **Objective:** Automate the ticketing process, prevent double-booking of seats, and provide a clear overview of theater occupancy for cinema management.
 
@@ -17,6 +17,7 @@ The Smart Cinema Booking System provides an interface for staff to book tickets 
 | Feature | Description |
 |---|---|
 | **Multi-Theatre Support** | Manage multiple theatre locations, each with their own screens |
+| **Location Filtering** | Browse movies with showtimes at a selected theatre location |
 | **Movie Scheduling** | Set up showtimes and assign movies to specific screens |
 | **Account Access** | Register new accounts in MySQL and authenticate existing users against the database |
 | **Seat Management** | Grid-based graphical view of seat availability (Booked vs. Available) |
@@ -161,10 +162,14 @@ SmartCinemaBookingSystem/
 3. Configure the connection with `CINEMA_DB_URL`, `CINEMA_DB_USER`, and
    `CINEMA_DB_PASSWORD` environment variables. The defaults are
    `jdbc:mysql://localhost:3306/Cinema_booking_System`, `root`, and an empty password.
+   If your local MySQL root account has a password, set `CINEMA_DB_PASSWORD` in your
+   terminal/session rather than hardcoding the password in Java. Avoid committing credentials.
+   In PowerShell, for example, run `$env:CINEMA_DB_PASSWORD = "your-local-password"` before
+   launching the app. You can also set `CINEMA_DB_URL` and `CINEMA_DB_USER` the same way.
 4. Run `mvn test` to compile and test the project, or `mvn package` to build it.
-5. Launch the application. Choose **Create a new account** to register, or sign in with an existing
-   username and password. New accounts are saved in the `USERS` table; sign-in credentials are
-   checked against that table.
+5. Launch the application with `mvn exec:java`. Choose **Create a new account** to register, or
+   sign in with an existing username and password. New accounts are saved in the `USERS` table;
+   sign-in credentials are checked against that table.
 
 The JDBC DAOs use the model classes in `src/main/java/model` and expect the schema
 created by the SQL script above.
@@ -189,4 +194,4 @@ created by the SQL script above.
 
 ## 📝 Conclusion
 
-The Smart Cinema Booking System modernizes the box office experience, ensuring accurate seating and efficient management of movie schedules across multiple theatres through a robust Java–JDBC backend.
+Book Your Show modernizes the box office experience, ensuring accurate seating and efficient management of movie schedules across multiple theatres through a robust Java–JDBC backend.

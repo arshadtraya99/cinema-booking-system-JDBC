@@ -11,3 +11,8 @@ target/
 
 # macOS
 .DS_Store
+# Local-only credentials/configuration
+.env
+.env.*
+!.env.example
+*.local.properties
