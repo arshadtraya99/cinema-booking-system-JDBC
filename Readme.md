@@ -1,6 +1,6 @@
 # 🎬 Book Your Show
 
-A desktop application built with **Java, Java Swing, MySQL, and JDBC** that manages movie screenings, theater seating, and ticket reservations — designed to automate the box office workflow, prevent double-booking, and give cinema management a clear view of theater occupancy across multiple locations.
+A desktop application built with **Java 7 or above, Java Swing, MySQL, and JDBC** that manages movie screenings, theater seating, and ticket reservations — designed to automate the box office workflow, prevent double-booking, and give cinema management a clear view of theater occupancy across multiple locations.
 
 ---
 
